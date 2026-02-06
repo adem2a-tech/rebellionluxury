@@ -167,9 +167,9 @@ const Header = ({ onOpenChat }: HeaderProps) => {
             >
               <nav className="flex flex-col gap-0 py-4">
                 {navItems.flatMap((item) => {
-                  // Onglets majeurs : blanc + ombre pour bien les distinguer des sous-éléments
                   const majorTabClass = "block px-4 py-3 min-h-[44px] flex items-center text-sm font-semibold uppercase tracking-wider text-[#ffffff] hover:text-[#ffffff] hover:bg-muted/50 active:bg-muted touch-manipulation";
                   const subTabClass = "block px-6 py-3 min-h-[44px] flex items-center text-sm font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted touch-manipulation";
+                  const separator = <div key={`sep-${item.label}`} className="mx-4 my-1 border-b border-white/10" aria-hidden />;
                   if ("subItems" in item && item.subItems) {
                     return [
                       <Link key={item.label} to={item.href} onClick={() => setIsMobileMenuOpen(false)} className={majorTabClass}>
@@ -180,12 +180,14 @@ const Header = ({ onOpenChat }: HeaderProps) => {
                           {sub.label}
                         </Link>
                       )),
+                      separator,
                     ];
                   }
                   return [
                     <Link key={item.label} to={item.href} onClick={() => setIsMobileMenuOpen(false)} className={majorTabClass}>
                       {item.label}
                     </Link>,
+                    separator,
                   ];
                 })}
                 <div className="px-4 pt-4">
