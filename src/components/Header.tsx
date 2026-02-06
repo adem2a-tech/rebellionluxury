@@ -15,7 +15,7 @@ interface HeaderProps {
 
 const vehiculesSubItems = [
   { label: "Catalogue", href: "/vehicules" },
-  { label: "Véhicules hors Rebellion", href: "/vehicules?hors-rebellion=1" },
+  { label: "Catalogue des particuliers", href: "/vehicules?hors-rebellion=1" },
   { label: "Calculez le prix", href: "/calculer-prix" },
 ];
 

@@ -135,7 +135,7 @@ const VehiclesSection = ({ onAskQuestion, onlyHorsRebellion = false }: VehiclesS
             transition={{ duration: 0.5, delay: 0.2 }}
             whileHover={{ scale: 1.05, y: -2 }}
           >
-            {onlyHorsRebellion ? "Véhicules hors Rebellion" : "Notre Flotte"}
+            {onlyHorsRebellion ? "Catalogue des particuliers" : "Notre Flotte"}
           </motion.span>
           <p className="font-display text-lg md:text-xl text-primary font-semibold mb-2">
             {onlyHorsRebellion ? "Loués par des particuliers via notre plateforme" : "L'excellence au volant — L'émotion en Suisse romande"}
@@ -167,7 +167,7 @@ const VehiclesSection = ({ onAskQuestion, onlyHorsRebellion = false }: VehiclesS
         {/* Grille catalogue pleine largeur — thème sombre type NERO */}
         <div className="w-full">
           {vehicles.length === 0 && onlyHorsRebellion ? (
-            <p className="text-center text-muted-foreground py-12">Aucun véhicule hors Rebellion pour le moment. Les véhicules acceptés via « Loue ton propre véhicule » apparaîtront ici.</p>
+            <p className="text-center text-muted-foreground py-12">Aucun véhicule de particulier pour le moment. Les véhicules acceptés via « Loue ton propre véhicule » apparaîtront ici.</p>
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                   {vehicles.map((vehicle) => {
@@ -208,6 +208,11 @@ const VehiclesSection = ({ onAskQuestion, onlyHorsRebellion = false }: VehiclesS
                         <div className="relative h-full block">
                           <div className="relative rounded-xl overflow-hidden h-full min-h-[360px] flex flex-col border-2 border-black bg-black shadow-[0_8px_30px_-8px_rgba(0,0,0,0.5)] transition-shadow duration-300 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6)]">
                             <VehicleCardCarousel images={mediaList} badgeLabel={onlyHorsRebellion ? "Particulier" : "Rebellion"} />
+                            {onlyHorsRebellion && (
+                              <p className="px-4 py-2 text-xs text-zinc-500 bg-zinc-900/80 border-t border-zinc-800">
+                                Ce véhicule n&apos;appartient pas à Rebellion Luxury
+                              </p>
+                            )}
                             {unavailableUntil && (
                               <div className="absolute top-3 right-3 z-20 px-3 py-1.5 rounded-lg bg-amber-500/90 text-black text-xs font-semibold uppercase">
                                 Indisponible jusqu&apos;au {formatDate(unavailableUntil)}

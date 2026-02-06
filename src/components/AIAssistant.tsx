@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Bot, User, Sparkles, Car, Instagram, Calculator } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { IoLogoWhatsapp } from "react-icons/io5";
 import { useUser } from "@/contexts/UserContext";
 import { useChat } from "@/contexts/ChatContext";
@@ -269,6 +270,7 @@ const sendMessageToAI = async (
 };
 
 const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => {
+  const isMobile = useIsMobile();
   const { user } = useUser();
   const { vehicleContext } = useChat();
 
@@ -302,10 +304,10 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
+    if (isOpen && inputRef.current && !isMobile) {
       inputRef.current.focus();
     }
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   useEffect(() => {
     if (vehicleContext) {
@@ -428,22 +430,25 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
         )}
       </AnimatePresence>
 
-      {/* Chat Window - Larger */}
+      {/* Chat Window — plein écran sur mobile, fenêtre sur desktop */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            exit={{ opacity: 0, y: 20, scale: 0.98 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-x-4 bottom-4 sm:inset-auto sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[480px] h-[min(700px,calc(100dvh-3rem))] max-h-[calc(100dvh-3rem-env(safe-area-inset-bottom,0px))] glass-card rounded-3xl overflow-hidden flex flex-col"
+            className={`fixed z-50 flex flex-col overflow-hidden touch-manipulation
+              sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[480px] sm:h-[min(700px,calc(100dvh-3rem))] sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl sm:glass-card
+              inset-0 w-full h-[100dvh] rounded-none bg-background
+            `}
             style={{
-              boxShadow: "0 0 40px hsl(0 0% 100% / 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-              border: "1px solid hsl(0 0% 100% / 0.2)"
+              boxShadow: isMobile ? "none" : "0 0 40px hsl(0 0% 100% / 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+              border: isMobile ? "none" : "1px solid hsl(0 0% 100% / 0.2)"
             }}
           >
-            {/* Header - Branded */}
-            <div className="flex items-center justify-between p-5 border-b border-border bg-gradient-to-r from-primary/20 via-primary/10 to-transparent">
+            {/* Header — safe area pour encoche */}
+            <div className="flex items-center justify-between p-4 sm:p-5 pt-[max(1rem,env(safe-area-inset-top))] border-b border-border bg-gradient-to-r from-primary/20 via-primary/10 to-transparent shrink-0">
               <div className="flex items-center gap-4">
                 <motion.div 
                   className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center"
@@ -476,8 +481,8 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
               </button>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {/* Messages — min-h-0 pour que le scroll fonctionne avec flex */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-5 space-y-4 overscroll-contain">
               {messages.map((message) => (
                 <motion.div
                   key={message.id}
@@ -562,10 +567,10 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Suggestions — visibles au démarrage et après quelques échanges */}
+            {/* Quick Suggestions — scroll horizontal sur mobile */}
             {messages.length <= 4 && !isLoading && (
-              <div className="px-5 pb-3">
-                <p className="text-xs text-muted-foreground mb-2">Suggestions rapides :</p>
+              <div className="px-4 sm:px-5 pb-2 shrink-0 overflow-x-auto overscroll-x-contain">
+                <p className="text-xs text-muted-foreground mb-2">Suggestions :</p>
                 <div className="flex flex-wrap gap-2">
                   {quickSuggestions.map((suggestion, index) => (
                     <motion.button
@@ -584,8 +589,8 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
               </div>
             )}
 
-            {/* Input */}
-            <div className="p-4 border-t border-border bg-card/50">
+            {/* Input — text-base (16px) évite le zoom iOS au focus */}
+            <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-border bg-card/50 shrink-0">
               <div className="flex gap-3">
                 <input
                   ref={inputRef}
@@ -593,15 +598,16 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Posez toute question imaginable..."
-                  className="flex-1 bg-muted rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
+                  placeholder="Posez toute question..."
+                  autoComplete="off"
+                  className="flex-1 bg-muted rounded-xl px-4 py-3.5 text-base min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground touch-manipulation"
                 />
                 <Button
                   variant="hero"
                   size="icon"
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
-                  className="h-12 w-12 rounded-xl"
+                  className="h-[44px] min-h-[44px] w-12 rounded-xl touch-manipulation"
                 >
                   <Send className="w-5 h-5" />
                 </Button>
@@ -612,7 +618,7 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
                 href={CONTACT.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#25d366] hover:bg-[#20bd5a] text-white font-medium text-sm transition-colors"
+                className="mt-3 flex items-center justify-center gap-2 w-full min-h-[44px] py-2.5 rounded-xl bg-[#25d366] hover:bg-[#20bd5a] text-white font-medium text-sm transition-colors touch-manipulation"
                 aria-label="Contacter par WhatsApp"
               >
                 <IoLogoWhatsapp className="w-5 h-5 shrink-0" />
