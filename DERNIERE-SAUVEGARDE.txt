@@ -1,0 +1,12 @@
+Dernière sauvegarde — Rebellion Luxury
+======================================
+
+Projet : rebellion-ai-concierge-main
+Emplacement : c:\Users\sdiri\Videos\MIRA BOUTIQUE\btp-ui\rebellion-ai-concierge-main
+
+Sauvegarde effectuée : tout le site est bien enregistré sur ton disque.
+Tu peux fermer Cursor quand tu veux.
+
+Pour rouvrir le projet plus tard : ouvre ce dossier dans Cursor ou lance "npm run dev" dans un terminal depuis ce dossier.
+
+Bonne nuit.

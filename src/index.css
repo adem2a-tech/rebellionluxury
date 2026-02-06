@@ -1,0 +1,562 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Bebas+Neue&family=Russo+One&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Fond noir pur */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 3%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Noir = base du site, Blanc = finitions / accents (titres, boutons, bordures) */
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+
+    /* Blanc pour accents secondaires */
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 0 0% 0%;
+
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 0 0% 100%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 0 0% 100%;
+
+    --radius: 0.75rem;
+
+    /* Custom luxury variables — noir & blanc */
+    --glow-orange: 0 0 40px hsl(0 0% 100% / 0.2);
+    --glow-blue: 0 0 40px hsl(0 0% 100% / 0.15);
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 0%) 0%, hsl(0 0% 2%) 50%, hsl(0 0% 0%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(0 0% 0%) 100%);
+    --gradient-orange: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 85%) 100%);
+    --gradient-blue: linear-gradient(135deg, hsl(0 0% 95%) 0%, hsl(0 0% 75%) 100%);
+    
+    /* Sidebar */
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 6%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 95%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Scroll margin for fixed header (anchor links) */
+  [id="vehicles"],
+  [id="contact"] {
+    scroll-margin-top: 5.5rem;
+  }
+
+  /* Focus visible for keyboard navigation */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  body {
+    @apply antialiased;
+    font-family: 'Inter', sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+    color: hsl(var(--foreground));
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  }
+
+@layer components {
+  .text-gradient-orange {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-orange);
+  }
+
+  .text-gradient-blue {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-blue);
+  }
+
+  .glow-orange {
+    box-shadow: var(--glow-orange);
+  }
+
+  .glow-blue {
+    box-shadow: var(--glow-blue);
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 transition-all duration-500;
+  }
+
+  /* Titre véhicule 3D — fond noir, extrusion, lueur luxe */
+  .vehicle-title-3d {
+    font-family: 'Russo One', sans-serif;
+    background: #000;
+    color: #fff;
+    text-shadow:
+      1px 1px 0 hsl(0 0% 15%),
+      2px 2px 0 hsl(0 0% 12%),
+      3px 3px 0 hsl(0 0% 10%),
+      4px 4px 0 hsl(0 0% 8%),
+      5px 5px 12px rgba(0, 0, 0, 0.8),
+      0 0 20px hsl(0 0% 100% / 0.2),
+      0 0 40px hsl(0 0% 100% / 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.2),
+      0 2px 4px rgba(255, 255, 255, 0.08);
+  }
+
+  /* Titre véhicule 3D + LED blanche sur les bords */
+  .vehicle-title-led {
+    position: relative;
+    display: inline-block;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 0.25rem;
+    box-shadow:
+      0 0 8px rgba(255, 255, 255, 0.3),
+      0 0 16px rgba(255, 255, 255, 0.2),
+      0 0 24px rgba(255, 255, 255, 0.15),
+      inset 0 0 12px rgba(255, 255, 255, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Flottement léger pour les cartes véhicules (page d'accueil) */
+  @keyframes float-subtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .float-subtle {
+    animation: float-subtle 4s ease-in-out infinite;
+  }
+
+  /* Liquid glass : bordure dégradé, flou, reflet */
+  .liquid-glass {
+    position: relative;
+    background: linear-gradient(135deg, hsl(0 0% 6% / 0.6) 0%, hsl(0 0% 2% / 0.5) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid transparent;
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.08),
+      inset 0 -1px 0 hsl(0 0% 0% / 0.3),
+      0 0 0 1px hsl(0 0% 100% / 0.03);
+  }
+  .liquid-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.2), hsl(0 0% 100% / 0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .font-description {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .neon-border {
+    @apply relative;
+  }
+
+  .neon-border::before {
+    content: '';
+    @apply absolute inset-0 rounded-lg;
+    padding: 1px;
+    background: var(--gradient-orange);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* LED subtiles — bordures et badges */
+  .led-subtle {
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .led-badge {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.12), inset 0 0 8px rgba(255, 255, 255, 0.04);
+  }
+  .led-section {
+    position: relative;
+  }
+  .led-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    pointer-events: none;
+  }
+
+  /* Espace Pro : base — tous les jours texte blanc, pas de fond blanc */
+  .calendar-espace-pro .rdp-day,
+  .calendar-espace-pro button.rdp-button,
+  .calendar-espace-pro td button {
+    color: white !important;
+    background: transparent !important;
+  }
+  .calendar-espace-pro .rdp-day:hover,
+  .calendar-espace-pro button.rdp-button:not([disabled]):hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+  }
+  /* Jour actuel : bordure visible, pas de carré blanc */
+  .calendar-espace-pro .rdp-day_today,
+  .calendar-espace-pro button.rdp-day_today {
+    background: transparent !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    border-radius: 0.375rem;
+  }
+  /* Jour sélectionné : fond léger, texte blanc */
+  .calendar-espace-pro .rdp-day_selected,
+  .calendar-espace-pro button.rdp-day_selected,
+  .calendar-espace-pro button[aria-selected="true"] {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  }
+  /* Cellules (td) : pas de fond blanc (évite héritage bg-accent) */
+  .calendar-espace-pro td {
+    background: transparent !important;
+  }
+
+  /* Espace Pro — LED intense */
+  .espace-pro-led {
+    position: relative;
+  }
+  .espace-pro-led::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(251, 191, 36, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(251, 191, 36, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+  }
+  .espace-pro-led-title {
+    text-shadow:
+      0 0 10px rgba(255, 255, 255, 0.6),
+      0 0 24px rgba(255, 255, 255, 0.4),
+      0 0 48px rgba(255, 255, 255, 0.2),
+      0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  .espace-pro-led-card {
+    position: relative;
+    box-shadow:
+      0 0 12px rgba(255, 255, 255, 0.06),
+      0 0 24px rgba(255, 255, 255, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: box-shadow 0.3s ease;
+  }
+  .espace-pro-led-card:hover {
+    box-shadow:
+      0 0 20px rgba(255, 255, 255, 0.12),
+      0 0 30px rgba(251, 191, 36, 0.08),
+      0 0 40px rgba(255, 255, 255, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+  .espace-pro-led-tabs {
+    box-shadow:
+      0 0 16px rgba(255, 255, 255, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .espace-pro-led-tabs [data-state="active"] {
+    box-shadow:
+      0 0 12px rgba(255, 255, 255, 0.2),
+      inset 0 0 12px rgba(255, 255, 255, 0.08);
+  }
+  .espace-pro-led-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* Fond Hero : filtre image/vidéo pour rendu plus agréable */
+  .hero-background-media {
+    filter: brightness(0.95) contrast(1.03) saturate(0.98);
+  }
+
+  /* Rebellion Luxury en LED 3D derrière la voiture — blanc */
+  .hero-brand-led {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 800;
+    color: hsl(0 0% 100%);
+    text-shadow:
+      0 0 4px hsl(0 0% 100%),
+      0 0 12px hsl(0 0% 100% / 0.9),
+      0 0 24px hsl(0 0% 100% / 0.7),
+      0 0 48px hsl(0 0% 100% / 0.5),
+      0 2px 0 rgba(0, 0, 0, 0.8),
+      0 4px 8px rgba(0, 0, 0, 0.6),
+      0 8px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@layer utilities {
+  /* Transition fluide réutilisable (cartes, boutons) */
+  .transition-smooth {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* 3D & transitions globales */
+  .perspective-3d {
+    perspective: 2000px;
+    transform-style: preserve-3d;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-visible {
+    backface-visibility: visible;
+  }
+
+  .transition-3d {
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.5s ease,
+                opacity 0.4s ease;
+  }
+
+  .hover-lift-3d:hover {
+    transform: translateY(-8px) translateZ(20px);
+    box-shadow: 0 24px 48px -12px hsl(0 0% 100% / 0.15);
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(0 0% 100% / 0.2);
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(0 0% 100% / 0.35);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) translateZ(0);
+    }
+    50% {
+      transform: translateY(-10px) translateZ(10px);
+    }
+  }
+
+  .animate-float-3d {
+    animation: float-3d 5s ease-in-out infinite;
+  }
+
+  @keyframes float-3d {
+    0%, 100% {
+      transform: translateY(0) rotateX(0deg) rotateY(0deg);
+    }
+    25% {
+      transform: translateY(-6px) rotateX(2deg) rotateY(-2deg);
+    }
+    50% {
+      transform: translateY(-12px) rotateX(0deg) rotateY(0deg);
+    }
+    75% {
+      transform: translateY(-6px) rotateX(-2deg) rotateY(2deg);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9) translateZ(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateZ(0);
+    }
+  }
+
+  .animate-slide-up-3d {
+    animation: slide-up-3d 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes slide-up-3d {
+    from {
+      opacity: 0;
+      transform: translateY(30px) translateZ(-50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) translateZ(0);
+    }
+  }
+
+  .animate-tilt-in {
+    animation: tilt-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes tilt-in {
+    from {
+      opacity: 0;
+      transform: perspective(800px) rotateX(12deg) translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: perspective(800px) rotateX(0) translateY(0);
+    }
+  }
+
+  /* Hologramme : texte semi-transparent, lueur — blanc */
+  .hologram {
+    @apply text-primary/95 font-display font-semibold;
+    text-shadow:
+      0 0 10px hsl(0 0% 100% / 0.5),
+      0 0 20px hsl(0 0% 100% / 0.3);
+  }
+
+  .hologram-sub {
+    @apply text-muted-foreground/90 text-sm font-medium;
+    text-shadow: 0 0 8px hsl(0 0% 100% / 0.25);
+  }
+
+  /* Véhicules sans fond : le fond sombre des photos disparaît (seuls les véhicules restent visibles) */
+  .vehicle-cutout-wrapper {
+    background: hsl(var(--background));
+    isolation: isolate;
+  }
+
+  .vehicle-cutout {
+    mix-blend-mode: lighten;
+    display: block;
+  }
+
+  /* Label Rebellion IA : police 3D + lueur blanche */
+  .label-rebellion-ia {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.15),
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.3),
+      0 0 12px hsl(0 0% 100% / 0.4),
+      0 0 24px hsl(0 0% 100% / 0.2);
+  }
+
+  /* Popup bienvenue : liquid glass + bordure LED blanche */
+  .welcome-popup-led {
+    position: relative;
+    background: linear-gradient(135deg, hsl(0 0% 4% / 0.95) 0%, hsl(0 0% 0% / 0.98) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid transparent;
+    border-radius: 1rem;
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.1),
+      inset 0 -1px 0 hsl(0 0% 0% / 0.4),
+      0 0 0 1px hsl(0 0% 100% / 0.04),
+      0 0 24px hsl(0 0% 100% / 0.1),
+      0 0 48px hsl(0 0% 100% / 0.05);
+  }
+  .welcome-popup-led::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.25), hsl(0 0% 100% / 0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .welcome-popup-title-led {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: hsl(0 0% 100%);
+    text-shadow:
+      0 0 8px hsl(0 0% 100% / 0.9),
+      0 0 20px hsl(0 0% 100% / 0.6),
+      0 0 36px hsl(0 0% 100% / 0.35),
+      0 1px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  /* Lien TikTok : police, style LED blanc */
+  .tiktok-link-led {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: 0.03em;
+    color: hsl(0 0% 100%);
+    text-shadow:
+      0 0 6px hsl(0 0% 100% / 0.9),
+      0 0 16px hsl(0 0% 100% / 0.7),
+      0 0 28px hsl(0 0% 100% / 0.5),
+      0 1px 0 rgba(0, 0, 0, 0.3);
+  }
+}

@@ -1,0 +1,68 @@
+/* Section détail véhicule — très horizontal : gauche = médias (noir), droite = infos (blanc) */
+
+.vehicle-detail {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  padding: 0;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.vehicle-detail__left {
+  flex: 1 1 58%;
+  min-width: 0;
+  background: #000;
+  padding: 0.75rem 0 0.75rem 0.75rem;
+}
+
+.vehicle-detail__right {
+  display: flex;
+  flex: 1 1 42%;
+  min-width: 380px;
+  max-width: 560px;
+  background: #000;
+  padding: 0.75rem 0.75rem 0.75rem 0;
+  color: #fff;
+}
+
+/* LED blanche sur les bords — image véhicule */
+.vehicle-image-led {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.15),
+    0 0 16px rgba(255, 255, 255, 0.1),
+    inset 0 0 12px rgba(255, 255, 255, 0.03);
+}
+
+/* LED blanche sur les bords — panneau infos */
+.vehicle-info-led {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-left: none;
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.15),
+    0 0 16px rgba(255, 255, 255, 0.1),
+    inset 0 0 12px rgba(255, 255, 255, 0.03);
+}
+
+@media (max-width: 1024px) {
+  .vehicle-info-led {
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .vehicle-detail {
+    flex-direction: column;
+  }
+
+  .vehicle-detail__left {
+    flex: 1 1 auto;
+    padding: 0.75rem;
+  }
+
+  .vehicle-detail__right {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0.75rem;
+  }
+}
