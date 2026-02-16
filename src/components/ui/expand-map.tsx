@@ -5,12 +5,15 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from
 export interface LocationMapProps {
   location?: string;
   coordinates?: string;
+  /** URL Google Maps — au clic, ouvre la carte dans un nouvel onglet */
+  mapsUrl?: string;
   className?: string;
 }
 
 export function LocationMap({
   location = "San Francisco, CA",
   coordinates = "37.7749° N, 122.4194° W",
+  mapsUrl,
   className,
 }: LocationMapProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -42,7 +45,11 @@ export function LocationMap({
   };
 
   const handleClick = () => {
-    setIsExpanded(!isExpanded);
+    if (mapsUrl) {
+      window.open(mapsUrl, "_blank", "noopener,noreferrer");
+    } else {
+      setIsExpanded(!isExpanded);
+    }
   };
 
   return (
@@ -321,12 +328,12 @@ export function LocationMap({
         className="absolute -bottom-6 left-1/2 text-[10px] text-muted-foreground whitespace-nowrap -translate-x-1/2"
         initial={{ opacity: 0 }}
         animate={{
-          opacity: isHovered && !isExpanded ? 1 : 0,
-          y: isHovered ? 0 : 4,
+          opacity: isHovered || mapsUrl ? 1 : 0,
+          y: (isHovered || mapsUrl) ? 0 : 4,
         }}
         transition={{ duration: 0.2 }}
       >
-        Cliquez pour agrandir
+        {mapsUrl ? "Cliquez pour ouvrir Google Maps" : "Cliquez pour agrandir"}
       </motion.p>
     </motion.div>
   );

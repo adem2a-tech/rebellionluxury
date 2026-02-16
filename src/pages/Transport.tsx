@@ -97,7 +97,7 @@ const Transport = () => {
             >
               <img
                 src="/transport-jeep.png"
-                alt="McLaren sur remorque, livraison avec Jeep covering police"
+                alt="Jeep et véhicules Rebellion Luxury sur remorque"
                 className="w-full h-auto object-cover"
               />
             </motion.div>
@@ -109,7 +109,7 @@ const Transport = () => {
             >
               <img
                 src="/transport-lausanne.png"
-                alt="Audi R8 livraison sur Lausanne — Service Premium Rebellion"
+                alt="Jeep Rebellion Luxury en livraison sur autoroute"
                 className="w-full h-auto object-cover"
               />
             </motion.div>

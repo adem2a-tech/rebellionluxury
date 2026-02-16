@@ -459,15 +459,34 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
     }
   };
 
-  // Simple markdown-like rendering for bold text
+  // Markdown-like rendering : gras **text** et liens cliquables [text](url)
   const renderContent = (content: string) => {
-    const parts = content.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={index} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+    const parts: React.ReactNode[] = [];
+    const re = /(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g;
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+    while ((match = re.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(<span key={key++}>{content.slice(lastIndex, match.index)}</span>);
       }
-      return <span key={index}>{part}</span>;
-    });
+      const seg = match[1];
+      if (seg.startsWith("**") && seg.endsWith("**")) {
+        parts.push(<strong key={key++} className="font-semibold text-foreground">{seg.slice(2, -2)}</strong>);
+      } else if (seg.startsWith("[") && seg.includes("](")) {
+        const m = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(seg);
+        if (m) {
+          parts.push(
+            <a key={key++} href={m[2]} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">
+              {m[1]}
+            </a>
+          );
+        } else parts.push(seg);
+      } else parts.push(seg);
+      lastIndex = re.lastIndex;
+    }
+    if (lastIndex < content.length) parts.push(<span key={key++}>{content.slice(lastIndex)}</span>);
+    return parts.length > 0 ? <>{parts}</> : content;
   };
 
   return (
@@ -485,13 +504,18 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.95 }}
               onClick={onToggle}
-              className="relative w-14 h-14 min-w-[56px] min-h-[56px] sm:w-16 sm:h-16 rounded-full overflow-hidden bg-transparent flex items-center justify-center touch-manipulation transition-shadow hover:shadow-xl hover:shadow-white/20"
+              className="relative w-14 h-14 min-w-[56px] min-h-[56px] sm:w-16 sm:h-16 rounded-full overflow-hidden flex items-center justify-center touch-manipulation
+                bg-black
+                border-2 border-black/80
+                shadow-[0_4px_24px_rgba(0,0,0,.4),0_0_0_1px_rgba(0,0,0,.1)]
+                hover:shadow-[0_8px_32px_rgba(0,0,0,.5),0_0_0_1px_rgba(0,0,0,.15)]
+                hover:border-foreground/20 transition-all duration-300"
             >
-              {/* Logo Rebellion Luxury au lieu de l'icône bulle */}
+              {/* Logo Rebellion Luxury — rond noir élégant */}
               <img
                 src="/rebellion-luxury-logo.png"
                 alt="Rebellion Luxury"
-                className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                className="w-10 h-10 sm:w-12 sm:h-12 object-contain p-1.5"
               />
             </motion.button>
             <motion.span
@@ -527,12 +551,16 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
               <div className="flex items-center gap-3">
                 {/* Logo Rebellion Luxury au lieu d'une icône générique */}
                 <motion.div 
-                  className="w-11 h-11 rounded-full overflow-hidden border border-white/25 ring-1 ring-white/10 shrink-0"
+                  className="w-11 h-11 rounded-full overflow-hidden shrink-0
+                    bg-gradient-to-br from-white/20 to-white/5
+                    border-2 border-white/35
+                    ring-2 ring-white/20 ring-offset-2 ring-offset-background
+                    shadow-[0_0_16px_hsl(0_0%_100%_/_.2),inset_0_1px_0_hsl(0_0%_100%_/_.1)]"
                   animate={{ 
                     boxShadow: [
-                      "0 0 12px hsl(0 0% 100% / 0.2)",
-                      "0 0 20px hsl(0 0% 100% / 0.3)",
-                      "0 0 12px hsl(0 0% 100% / 0.2)"
+                      "0 0 14px hsl(0 0% 100% / 0.25), inset 0 1px 0 hsl(0 0% 100% / 0.1)",
+                      "0 0 24px hsl(0 0% 100% / 0.4), inset 0 1px 0 hsl(0 0% 100% / 0.1)",
+                      "0 0 14px hsl(0 0% 100% / 0.25), inset 0 1px 0 hsl(0 0% 100% / 0.1)"
                     ]
                   }}
                   transition={{ repeat: Infinity, duration: 2.5 }}
@@ -540,7 +568,7 @@ const AIAssistant = ({ isOpen, onToggle, initialMessage }: AIAssistantProps) => 
                   <img
                     src="/rebellion-luxury-logo.png"
                     alt="Rebellion Luxury"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain p-1.5"
                   />
                 </motion.div>
                 <div>

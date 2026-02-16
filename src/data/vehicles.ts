@@ -5,6 +5,7 @@
 
 import { getApprovedVehicles } from "./vehicleRequests";
 import { getAdminVehicles } from "./adminVehicles";
+import { getBaseFleet } from "./baseFleet";
 
 export interface VehicleSpec {
   caution: string;
@@ -81,12 +82,18 @@ export const VEHICLES_DATA: VehicleData[] = [
       warranty: "—",
     },
     pricing: [
-      { duration: "Journée (24h)", km: "200 km", price: "470 CHF" },
-      { duration: "Lundi au vendredi", km: "800 km", price: "2'200 CHF" },
-      { duration: "Lundi au lundi", km: "1'000 km", price: "2'800 CHF" },
-      { duration: "Vendredi au dimanche", km: "200 km", price: "670 CHF" },
-      { duration: "Vendredi au lundi", km: "200 km", price: "890 CHF" },
-      { duration: "Mois (30 jours)", km: "2'000 km", price: "8'500 CHF" },
+      { duration: "Du lundi au jeudi — 3 h", km: "50 km", price: "170 CHF" },
+      { duration: "Du lundi au jeudi — 6 h", km: "100 km", price: "210 CHF" },
+      { duration: "Du lundi au jeudi — 12 h", km: "200 km", price: "390 CHF" },
+      { duration: "Du lundi au jeudi — 24 h", km: "200 km", price: "470 CHF" },
+      { duration: "Du lundi au jeudi — 48 h", km: "200 km", price: "670 CHF" },
+      { duration: "Du lundi au jeudi — 72 h", km: "200 km", price: "830 CHF" },
+      { duration: "Du vendredi au dimanche — 3 h", km: "50 km", price: "210 CHF" },
+      { duration: "Du vendredi au dimanche — 6 h", km: "100 km", price: "250 CHF" },
+      { duration: "Du vendredi au dimanche — 12 h", km: "200 km", price: "430 CHF" },
+      { duration: "Du vendredi au dimanche — 24 h", km: "200 km", price: "510 CHF" },
+      { duration: "Du vendredi au dimanche — 48 h", km: "200 km", price: "710 CHF" },
+      { duration: "Du vendredi au dimanche — 72 h", km: "200 km", price: "870 CHF" },
     ],
     brand: "Audi",
     model: "R8 V8",
@@ -127,12 +134,18 @@ export const VEHICLES_DATA: VehicleData[] = [
       warranty: "—",
     },
     pricing: [
-      { duration: "Journée (24h)", km: "200 km", price: "950 CHF" },
-      { duration: "Lundi au vendredi", km: "1'000 km", price: "4'490 CHF" },
-      { duration: "Lundi au lundi", km: "1'400 km", price: "5'990 CHF" },
-      { duration: "Vendredi au dimanche", km: "200 km", price: "1'350 CHF" },
-      { duration: "Vendredi au lundi", km: "200 km", price: "1'690 CHF" },
-      { duration: "Mois (30 jours)", km: "3'000 km", price: "14'900 CHF" },
+      { duration: "Du lundi au jeudi — 3 h", km: "50 km", price: "390 CHF" },
+      { duration: "Du lundi au jeudi — 6 h", km: "100 km", price: "490 CHF" },
+      { duration: "Du lundi au jeudi — 12 h", km: "200 km", price: "790 CHF" },
+      { duration: "Du lundi au jeudi — 24 h", km: "200 km", price: "950 CHF" },
+      { duration: "Du lundi au jeudi — 48 h", km: "200 km", price: "1'350 CHF" },
+      { duration: "Du lundi au jeudi — 72 h", km: "200 km", price: "1'690 CHF" },
+      { duration: "Du vendredi au dimanche — 3 h", km: "50 km", price: "450 CHF" },
+      { duration: "Du vendredi au dimanche — 6 h", km: "100 km", price: "550 CHF" },
+      { duration: "Du vendredi au dimanche — 12 h", km: "200 km", price: "850 CHF" },
+      { duration: "Du vendredi au dimanche — 24 h", km: "200 km", price: "1'050 CHF" },
+      { duration: "Du vendredi au dimanche — 48 h", km: "200 km", price: "1'450 CHF" },
+      { duration: "Du vendredi au dimanche — 72 h", km: "200 km", price: "1'790 CHF" },
     ],
     brand: "McLaren",
     model: "570S",
@@ -145,15 +158,66 @@ export const VEHICLES_DATA: VehicleData[] = [
     location: "Suisse romande",
     availabilityUrl: BOBOLOC_URLS["McLaren 570S"],
   },
+  {
+    slug: "maserati-quattroporte-gts",
+    name: "Maserati Quattroporte GTS",
+    description:
+      "Expérience automobile d'exception avec la berline de luxe au caractère sportif affirmé. Sous son capot se cache un moteur V8 Ferrari biturbo, délivrant des performances impressionnantes. Élégance italienne, puissance et prestige. Idéale pour mariages, événements et déplacements VIP.",
+    video: "",
+    images: [
+      "/maserati-quattroporte-side.png",
+      "/maserati-quattroporte-front.png",
+      "/maserati-quattroporte-rear.png",
+      "/maserati-quattroporte-interior.png",
+    ],
+    specs: {
+      caution: "5'000 CHF",
+      power: "530 CH",
+      type: "Berline luxe",
+      transmission: "Automatique",
+      boite: "Automatique",
+      year: 2019,
+      doors: 4,
+      seats: 4,
+      exteriorColor: "Brun métallisé",
+      interiorColor: "Cuir beige",
+      kilometers: "—",
+      warranty: "—",
+    },
+    pricing: [
+      { duration: "Du lundi au jeudi — 3 h", km: "50 km", price: "150 CHF" },
+      { duration: "Du lundi au jeudi — 6 h", km: "100 km", price: "190 CHF" },
+      { duration: "Du lundi au jeudi — 12 h", km: "200 km", price: "350 CHF" },
+      { duration: "Du lundi au jeudi — 24 h", km: "200 km", price: "420 CHF" },
+      { duration: "Du lundi au jeudi — 48 h", km: "200 km", price: "600 CHF" },
+      { duration: "Du lundi au jeudi — 72 h", km: "200 km", price: "750 CHF" },
+      { duration: "Du vendredi au dimanche — 3 h", km: "50 km", price: "190 CHF" },
+      { duration: "Du vendredi au dimanche — 6 h", km: "100 km", price: "225 CHF" },
+      { duration: "Du vendredi au dimanche — 12 h", km: "200 km", price: "390 CHF" },
+      { duration: "Du vendredi au dimanche — 24 h", km: "200 km", price: "460 CHF" },
+      { duration: "Du vendredi au dimanche — 48 h", km: "200 km", price: "640 CHF" },
+      { duration: "Du vendredi au dimanche — 72 h", km: "200 km", price: "780 CHF" },
+    ],
+    brand: "Maserati",
+    model: "Quattroporte GTS",
+    pricePerDay: 420,
+    power: 530,
+    year: 2019,
+    category: "Berline luxe",
+    transmission: "Automatique",
+    boite: "Automatique",
+    location: "Suisse romande",
+  },
 ];
 
 /**
- * Retourne tous les véhicules : statiques + admin + demandes acceptées.
+ * Retourne tous les véhicules : flotte de base (modifiable) + admin + demandes acceptées.
  */
 export function getAllVehicles(): VehicleData[] {
+  const base = getBaseFleet();
   const approved = getApprovedVehicles();
   const admin = getAdminVehicles();
-  return [...VEHICLES_DATA, ...admin, ...approved];
+  return [...base, ...admin, ...approved];
 }
 
 export function getVehicleBySlug(slug: string): VehicleData | undefined {

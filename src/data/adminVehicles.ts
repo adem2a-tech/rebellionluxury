@@ -105,6 +105,58 @@ export function addAdminVehicle(input: AdminVehicleInput): VehicleData {
   return vehicle;
 }
 
+/** Met à jour un véhicule admin existant */
+export function updateAdminVehicle(slug: string, input: AdminVehicleInput): VehicleData | null {
+  const list = loadAdminVehicles();
+  const index = list.findIndex((v) => v.slug === slug);
+  if (index < 0) return null;
+
+  const powerNum = parseInt(input.power.replace(/\D/g, ""), 10) || 0;
+  const specs: VehicleSpec = {
+    caution: input.caution || "À définir",
+    power: input.power,
+    type: input.category || "Sport",
+    transmission: input.transmission,
+    boite: input.transmission,
+    year: input.year,
+    doors: 2,
+    seats: 2,
+    exteriorColor: "—",
+    interiorColor: "—",
+    kilometers: "—",
+    warranty: "—",
+  };
+
+  const pricing = input.pricing.length > 0 ? input.pricing : [
+    { duration: "Journée (24h)", km: "200 km", price: "Sur demande" },
+  ];
+  const price24 = pricing[0]?.price ? parseInt(pricing[0].price.replace(/\D/g, ""), 10) : 0;
+
+  const vehicle: VehicleData = {
+    ...list[index],
+    slug, // garde le slug pour ne pas casser les liens
+    name: `${input.brand} ${input.model}`.trim(),
+    description: input.description,
+    images: input.images.length > 0 ? input.images : list[index].images,
+    specs,
+    pricing,
+    brand: input.brand,
+    model: input.model,
+    pricePerDay: price24,
+    power: powerNum,
+    year: input.year,
+    category: input.category || "Sport",
+    transmission: input.transmission,
+    boite: input.transmission,
+    location: input.location || "Suisse romande",
+    availabilityUrl: input.availabilityUrl?.trim() || undefined,
+  };
+
+  list[index] = vehicle;
+  saveAdminVehicles(list);
+  return vehicle;
+}
+
 /** Supprime un véhicule admin par slug */
 export function removeAdminVehicle(slug: string): void {
   const list = loadAdminVehicles().filter((v) => v.slug !== slug);

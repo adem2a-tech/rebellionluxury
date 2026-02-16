@@ -9,6 +9,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { LocationMap } from "@/components/ui/expand-map";
+import { CONTACT } from "@/data/chatKnowledge";
 import { ArrowLeft, Sparkles, Shield, Zap, MapPin, Check } from "lucide-react";
 
 const REEL_IDS = ["DSX0cu2jBnF", "DSadvC-CGbc", "DTk8GtQiohD"];
@@ -115,6 +116,7 @@ const APropos = () => {
               <LocationMap
                 location="Suisse, Evionnaz"
                 coordinates="46.18° N, 7.02° E — Valais, Suisse romande"
+                mapsUrl={CONTACT.googleMapsUrl}
                 className="mt-2"
               />
             </div>

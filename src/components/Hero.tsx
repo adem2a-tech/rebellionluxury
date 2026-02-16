@@ -154,7 +154,7 @@ const Hero = ({ onOpenChat, onCheckAvailability }: HeroProps) => {
             className="font-display text-4xl md:text-5xl lg:text-7xl font-bold mb-6 leading-tight"
           >
             Location de{" "}
-            <span className="text-gradient-orange">voitures de luxe</span>
+            <span className="text-gradient-orange">véhicule haute gamme</span>
             <br />
             en Suisse romande
           </motion.h1>

@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import Hero from "@/components/Hero";
+import { CONTACT } from "@/data/chatKnowledge";
 import { VideoFlotteCard } from "@/components/VideoFlotteCard";
 import { Quote, Mail, Phone, MapPin, Instagram, ExternalLink } from "lucide-react";
 import { IoLogoWhatsapp } from "react-icons/io5";
-import { CONTACT } from "@/data/chatKnowledge";
 import { LocationMap } from "@/components/ui/expand-map";
 import { ReviewsCarousel } from "@/components/ReviewsCarousel";
 
@@ -41,18 +41,18 @@ const Index = () => {
             transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
           >
             <VideoFlotteCard
-              title="McLaren 570S"
-              imageSrc="/mclaren-570s-showroom.png"
-              ariaLabel="McLaren 570S"
-              vehicleType="Supercar"
-              description="Portes papillons, moteur central et lignes agressives. La quintessence du luxe sportif britannique."
-            />
-            <VideoFlotteCard
               title="Audi R8"
-              imageSrc="/audi-r8-showroom.png"
+              imageSrc="/mclaren-570s-showroom.png"
               ariaLabel="Audi R8"
               vehicleType="Supercar"
               description="V8 atmosphérique, tenue de route exemplaire. L'élégance allemande au service de la performance."
+            />
+            <VideoFlotteCard
+              title="McLaren 570S"
+              imageSrc="/audi-r8-showroom.png"
+              ariaLabel="McLaren 570S"
+              vehicleType="Supercar"
+              description="Portes papillons, moteur central et lignes agressives. La quintessence du luxe sportif britannique."
             />
           </motion.div>
 
@@ -151,12 +151,13 @@ const Index = () => {
             </span>
             <h3 className="font-display text-xl font-bold mb-2">Où nous trouver</h3>
             <p className="text-muted-foreground text-sm mb-6 text-center max-w-md">
-              Rebellion Luxury — récupérez votre supercar à Evionnaz (Valais). Cliquez sur la carte pour l&apos;agrandir.
+              Rebellion Luxury — récupérez votre supercar à Evionnaz (Valais). Cliquez sur la carte pour ouvrir Google Maps.
             </p>
             <div className="relative z-10 flex flex-col items-center">
               <LocationMap
                 location="Suisse, Evionnaz"
                 coordinates="46.18° N, 7.02° E — Valais, Suisse romande"
+                mapsUrl={CONTACT.googleMapsUrl}
                 className="mt-2"
               />
             </div>

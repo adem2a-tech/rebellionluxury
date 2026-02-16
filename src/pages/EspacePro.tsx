@@ -14,7 +14,9 @@ import { getAllVisitors } from "@/data/visitors";
 import { getAllRequests, getRequestsByStatus, updateRequestStatus, acceptRequestWithPricing, updateRequestSpecs, updateRequestPricing, deleteRequest } from "@/data/vehicleRequests";
 import type { VehicleRequest } from "@/data/vehicleRequests";
 import { getPendingLeads, getAllLeads, markLeadContacted } from "@/data/leads";
-import { addAdminVehicle, getAdminVehicles, removeAdminVehicle } from "@/data/adminVehicles";
+import { addAdminVehicle, getAdminVehicles, removeAdminVehicle, updateAdminVehicle } from "@/data/adminVehicles";
+import { getBaseFleet, updateBaseVehicle } from "@/data/baseFleet";
+import type { BaseFleetInput } from "@/data/baseFleet";
 import type { PricingTier, VehicleSpec } from "@/data/vehicles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,8 +89,233 @@ function EspaceProLogin() {
   );
 }
 
+function FlotteBaseSection() {
+  const [baseFleet, setBaseFleet] = useState(() => getBaseFleet());
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [power, setPower] = useState("");
+  const [transmission, setTransmission] = useState("");
+  const [description, setDescription] = useState("");
+  const [caution, setCaution] = useState("");
+  const [location, setLocation] = useState("");
+  const [category, setCategory] = useState("Sport");
+  const [availabilityUrl, setAvailabilityUrl] = useState("");
+  const [video, setVideo] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [pricing, setPricing] = useState<PricingTier[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const refreshFleet = () => setBaseFleet(getBaseFleet());
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    const remaining = MAX_IMAGES - images.length;
+    const toAdd = Array.from(files).slice(0, remaining);
+    toAdd.forEach((file) => {
+      if (file.size > 800 * 1024) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const data = reader.result as string;
+        if (data) setImages((prev) => [...prev, data].slice(0, MAX_IMAGES));
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const addPricingRow = () => setPricing((p) => [...p, { duration: "", km: "", price: "" }]);
+  const updatePricingRow = (i: number, field: keyof PricingTier, value: string) => {
+    setPricing((p) => p.map((t, j) => (j === i ? { ...t, [field]: value } : t)));
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingSlug) return;
+    const fd = new FormData(e.currentTarget);
+    const input: BaseFleetInput = {
+      brand: String(fd.get("brand") ?? "").trim(),
+      model: String(fd.get("model") ?? "").trim(),
+      year: Number(fd.get("year")) || new Date().getFullYear(),
+      power: String(fd.get("power") ?? "").trim(),
+      transmission: String(fd.get("transmission") ?? "").trim(),
+      description: String(fd.get("description") ?? "").trim(),
+      caution: String(fd.get("caution") ?? "").trim(),
+      location: String(fd.get("location") ?? "").trim(),
+      category: String(fd.get("category") ?? "").trim(),
+      availabilityUrl: String(fd.get("availabilityUrl") ?? "").trim() || undefined,
+      video: video.trim() || undefined,
+      images: images.length > 0 ? images : [],
+      pricing: pricing.filter((t) => (t.duration?.trim() || t.km?.trim() || t.price?.trim())).map((t) => ({
+        ...t,
+        price: t.price || "Sur demande",
+      })),
+    };
+    if (!input.brand || !input.model || !input.power || !input.transmission || !input.description) return;
+    if (images.length === 0) return;
+    updateBaseVehicle(editingSlug, input);
+    resetForm();
+    refreshFleet();
+  };
+
+  const handleEdit = (v: (typeof baseFleet)[0]) => {
+    setEditingSlug(v.slug);
+    setBrand(v.brand);
+    setModel(v.model);
+    setYear(v.year);
+    setPower(v.specs.power);
+    setTransmission(v.specs.transmission);
+    setDescription(v.description);
+    setCaution(v.specs.caution);
+    setLocation(v.location);
+    setCategory(v.specs.type);
+    setAvailabilityUrl(v.availabilityUrl ?? "");
+    setVideo(v.video ?? "");
+    setImages(v.images.length > 0 ? v.images : []);
+    setPricing(v.pricing.length > 0 ? v.pricing.map((p) => ({ ...p })) : [{ duration: "24h", km: "200 km", price: "" }]);
+  };
+
+  const resetForm = () => {
+    setEditingSlug(null);
+    setBrand("");
+    setModel("");
+    setYear(new Date().getFullYear());
+    setPower("");
+    setTransmission("");
+    setDescription("");
+    setCaution("");
+    setLocation("");
+    setCategory("Sport");
+    setAvailabilityUrl("");
+    setVideo("");
+    setImages([]);
+    setPricing([]);
+  };
+
+  return (
+    <Card className="espace-pro-led-card border border-white/20 bg-black/60 mb-8 overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-amber-400 espace-pro-led-title text-lg flex items-center gap-2">
+          <Car className="w-5 h-5 text-amber-400/90" /> Flotte de base ({baseFleet.length})
+        </CardTitle>
+        <p className="text-xs text-white/50 mt-1">Audi, McLaren, Maserati — modifiables ici</p>
+      </CardHeader>
+      <CardContent>
+        {/* Liste des véhicules de base */}
+        <div className="space-y-2 mb-6">
+          {baseFleet.map((v) => (
+            <div key={v.slug} className="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-black/30 hover:border-amber-500/20 transition-colors">
+              <div>
+                <p className="font-medium text-white">{v.name}</p>
+                <p className="text-xs text-white/50">{v.year} · {v.specs.power}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => handleEdit(v)} className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10" title="Modifier">
+                <Pencil className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        {/* Formulaire d'édition */}
+        {editingSlug && (
+          <form onSubmit={handleSubmit} className="space-y-6 p-4 rounded-xl border border-amber-500/30 bg-black/50">
+            <h3 className="text-amber-400 text-sm font-medium">Modifier {baseFleet.find((v) => v.slug === editingSlug)?.name}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Marque *</label>
+                <input name="brand" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Ex. Maserati" required className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Modèle *</label>
+                <input name="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Ex. Quattroporte GTS" required className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Année *</label>
+                <input name="year" type="number" value={year} onChange={(e) => setYear(Number(e.target.value) || 0)} min={1900} max={new Date().getFullYear() + 1} className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Puissance *</label>
+                <input name="power" value={power} onChange={(e) => setPower(e.target.value)} placeholder="Ex. 530 CH" required className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Transmission *</label>
+                <input name="transmission" value={transmission} onChange={(e) => setTransmission(e.target.value)} placeholder="Ex. Automatique" required className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Catégorie</label>
+                <input name="category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex. Sport" className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Description *</label>
+                <textarea name="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Décrivez le véhicule..." required rows={3} className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Caution</label>
+                <input name="caution" value={caution} onChange={(e) => setCaution(e.target.value)} placeholder="Ex. 5'000 CHF" className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-white/60">Localisation</label>
+                <input name="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ex. Suisse romande" className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                <label className="text-xs uppercase tracking-wider text-white/60">Vidéo (URL ou chemin)</label>
+                <input name="video" value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Ex. /vehicle-maserati.mp4" className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+              <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                <label className="text-xs uppercase tracking-wider text-white/60">Lien Boboloc (disponibilités)</label>
+                <input name="availabilityUrl" type="url" value={availabilityUrl} onChange={(e) => setAvailabilityUrl(e.target.value)} placeholder="https://www.boboloc.com/..." className="w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs uppercase tracking-wider text-white/60">Photos * (max {MAX_IMAGES})</label>
+              <div className="flex flex-wrap gap-2">
+                {images.map((src, i) => (
+                  <div key={i} className="relative">
+                    <img src={src} alt="" className="w-20 h-20 object-cover rounded" />
+                    <button type="button" onClick={() => setImages((p) => p.filter((_, j) => j !== i))} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center"><X className="w-3 h-3" /></button>
+                  </div>
+                ))}
+                {images.length < MAX_IMAGES && (
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border border-dashed border-white/30 flex items-center justify-center text-white/40 hover:border-amber-500/50 hover:text-amber-400/80 transition-colors">
+                    <ImagePlus className="w-6 h-6" />
+                  </button>
+                )}
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-xs uppercase tracking-wider text-white/60">Grille tarifaire</label>
+                <Button type="button" size="sm" variant="outline" onClick={addPricingRow} className="border-amber-500/40 text-amber-400 text-xs">+ Ligne</Button>
+              </div>
+              <div className="space-y-2">
+                {pricing.map((t, i) => (
+                  <div key={i} className="flex gap-2 flex-wrap items-center">
+                    <input value={t.duration} onChange={(e) => updatePricingRow(i, "duration", e.target.value)} placeholder="Durée" className="flex-1 min-w-[120px] px-3 py-2 rounded-lg bg-black/50 border border-white/20 text-white text-sm" />
+                    <input value={t.km} onChange={(e) => updatePricingRow(i, "km", e.target.value)} placeholder="Km" className="w-24 px-3 py-2 rounded-lg bg-black/50 border border-white/20 text-white text-sm" />
+                    <input value={t.price} onChange={(e) => updatePricingRow(i, "price", e.target.value)} placeholder="Prix" className="w-28 px-3 py-2 rounded-lg bg-black/50 border border-white/20 text-white text-sm" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button type="submit" className="bg-amber-500 hover:bg-amber-400 text-black font-semibold uppercase tracking-wider rounded-lg py-6 transition-colors">
+                <Pencil className="w-4 h-4 mr-2" /> Enregistrer
+              </Button>
+              <Button type="button" variant="outline" onClick={resetForm} className="border-white/30 text-white/90 py-6">Annuler</Button>
+            </div>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function MesVehiculesSection() {
   const [adminVehicles, setAdminVehicles] = useState(() => getAdminVehicles());
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [year, setYear] = useState(new Date().getFullYear());
@@ -152,20 +379,65 @@ function MesVehiculesSection() {
       ...p,
       price: p.price || "Sur demande",
     }));
-    addAdminVehicle({
-      brand: submittedBrand,
-      model: submittedModel,
-      year: submittedYear,
-      power: submittedPower,
-      transmission: submittedTransmission,
-      description: submittedDescription,
-      caution: submittedCaution || "À définir",
-      location: submittedLocation || "Suisse romande",
-      category: submittedCategory || "Sport",
-      images,
-      pricing: tiers,
-      availabilityUrl: submittedAvailabilityUrl || undefined,
-    });
+    if (editingSlug) {
+      updateAdminVehicle(editingSlug, {
+        brand: submittedBrand,
+        model: submittedModel,
+        year: submittedYear,
+        power: submittedPower,
+        transmission: submittedTransmission,
+        description: submittedDescription,
+        caution: submittedCaution || "À définir",
+        location: submittedLocation || "Suisse romande",
+        category: submittedCategory || "Sport",
+        images,
+        pricing: tiers,
+        availabilityUrl: submittedAvailabilityUrl || undefined,
+      });
+    } else {
+      addAdminVehicle({
+        brand: submittedBrand,
+        model: submittedModel,
+        year: submittedYear,
+        power: submittedPower,
+        transmission: submittedTransmission,
+        description: submittedDescription,
+        caution: submittedCaution || "À définir",
+        location: submittedLocation || "Suisse romande",
+        category: submittedCategory || "Sport",
+        images,
+        pricing: tiers,
+        availabilityUrl: submittedAvailabilityUrl || undefined,
+      });
+    }
+    resetForm();
+    refreshVehicles();
+  };
+
+  const handleRemove = (slug: string) => {
+    removeAdminVehicle(slug);
+    refreshVehicles();
+    if (editingSlug === slug) setEditingSlug(null);
+  };
+
+  const handleEdit = (v: (typeof adminVehicles)[0]) => {
+    setEditingSlug(v.slug);
+    setBrand(v.brand);
+    setModel(v.model);
+    setYear(v.year);
+    setPower(v.specs.power);
+    setTransmission(v.specs.transmission);
+    setDescription(v.description);
+    setCaution(v.specs.caution);
+    setLocation(v.location);
+    setCategory(v.specs.type);
+    setAvailabilityUrl(v.availabilityUrl ?? "");
+    setImages(v.images.length > 0 ? v.images : []);
+    setPricing(v.pricing.length > 0 ? v.pricing.map((p) => ({ ...p })) : PRICING_TEMPLATES.map((t) => ({ ...t, price: "" })));
+  };
+
+  const resetForm = () => {
+    setEditingSlug(null);
     setBrand("");
     setModel("");
     setYear(new Date().getFullYear());
@@ -178,12 +450,6 @@ function MesVehiculesSection() {
     setAvailabilityUrl("");
     setImages([]);
     setPricing(PRICING_TEMPLATES.map((t) => ({ ...t, price: "" })));
-    refreshVehicles();
-  };
-
-  const handleRemove = (slug: string) => {
-    removeAdminVehicle(slug);
-    refreshVehicles();
   };
 
   return (
@@ -352,9 +618,20 @@ function MesVehiculesSection() {
             </div>
           </div>
 
-          <Button type="submit" className="bg-amber-500 hover:bg-amber-400 text-black font-semibold uppercase tracking-wider rounded-lg py-6 transition-colors">
-            <Car className="w-4 h-4 mr-2" /> Ajouter le véhicule
-          </Button>
+          <div className="flex gap-3">
+            <Button type="submit" className="bg-amber-500 hover:bg-amber-400 text-black font-semibold uppercase tracking-wider rounded-lg py-6 transition-colors">
+              {editingSlug ? (
+                <><Pencil className="w-4 h-4 mr-2" /> Enregistrer les modifications</>
+              ) : (
+                <><Car className="w-4 h-4 mr-2" /> Ajouter le véhicule</>
+              )}
+            </Button>
+            {editingSlug && (
+              <Button type="button" variant="outline" onClick={resetForm} className="border-white/30 text-white/90 py-6">
+                Annuler
+              </Button>
+            )}
+          </div>
         </form>
 
         {/* Liste des véhicules ajoutés */}
@@ -368,9 +645,14 @@ function MesVehiculesSection() {
                     <p className="font-medium text-white">{v.name}</p>
                     <p className="text-xs text-white/50">{v.year} · {v.specs.power}</p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleRemove(v.slug)} className="border-red-500/40 text-red-400 hover:bg-red-500/10">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(v)} className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10" title="Modifier">
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleRemove(v.slug)} className="border-red-500/40 text-red-400 hover:bg-red-500/10" title="Supprimer">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -732,6 +1014,9 @@ function EspaceProContent() {
             )}
           </CardContent>
         </Card>
+
+        {/* Flotte de base */}
+        <FlotteBaseSection />
 
         {/* Mes véhicules */}
         <MesVehiculesSection />
