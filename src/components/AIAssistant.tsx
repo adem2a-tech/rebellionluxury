@@ -79,14 +79,14 @@ const sendMessageToAI = async (
 
   // Point #3 : L'IA ne calcule plus de prix — elle guide vers les bonnes pages
   const hasPriceIntent = /combien|prix|tarif|coût|cout|estimation|cher/.test(lm);
-  const hasVehicle = lm.includes("audi") || lm.includes("r8") || lm.includes("mclaren") || lm.includes("570") || lm.includes("maserati") || lm.includes("quattroporte");
+  const hasVehicle = lm.includes("audi") || lm.includes("r8") || lm.includes("mclaren") || lm.includes("570");
   
   if (hasVehicle && hasPriceIntent) {
-    const vn =
-      lm.includes("maserati") || lm.includes("quattroporte") ? "Maserati Quattroporte GTS" :
-      (lm.includes("mclaren") || lm.includes("570")) ? "McLaren 570S" : "Audi R8 V8";
+    // Guider vers la fiche véhicule au lieu de calculer un prix
+    const vehicleName = (lm.includes("mclaren") || lm.includes("570")) ? "McLaren 570S" : "Audi R8 V8";
+    const vehicleSlug = (lm.includes("mclaren") || lm.includes("570")) ? "mclaren-570s" : "audi-r8-v8";
     return {
-      content: `💰 **Prix de la ${vn}**\n\nJe ne peux pas vous donner un prix exact ici, mais vous trouverez tous les tarifs détaillés (forfaits, km inclus, caution) sur la fiche du véhicule :\n\n👉 **Menu "Véhicules" → ${vn}**\n\nOu utilisez notre calculateur de prix interactif :\n👉 **Menu "Véhicules" → Calculer le prix**\n\nPour toute question, contactez-nous sur WhatsApp !` + whatsappCta(),
+      content: `💰 **Prix de la ${vehicleName}**\n\nJe ne peux pas vous donner un prix exact ici, mais vous trouverez tous les tarifs détaillés (forfaits, km inclus, caution) sur la fiche du véhicule :\n\n👉 **Menu "Véhicules" → ${vehicleName}**\n\nOu utilisez notre calculateur de prix interactif :\n👉 **Menu "Véhicules" → Calculer le prix**\n\nPour toute question, contactez-nous sur WhatsApp !` + whatsappCta(),
     };
   }
 
@@ -106,10 +106,6 @@ const sendMessageToAI = async (
   }
 
   // Louer McLaren — guide vers la page sans mentionner de prix
-  if ((lm.includes("louer") || lm.includes("louez")) && (lm.includes("maserati") || lm.includes("quattroporte"))) {
-    return { content: `📱 **Pour louer la Maserati Quattroporte GTS**, contactez-nous sur **WhatsApp** au **${CONTACT.phone}**.\n\nPour voir les tarifs et disponibilités, rendez-vous dans :\n👉 **Menu "Véhicules" → Maserati Quattroporte GTS**\n\nNous vous accompagnons pour finaliser votre réservation ! 🏎️` + whatsappCta() };
-  }
-
   if (
     (lm.includes("louer") || lm.includes("louez")) &&
     (lm.includes("mclaren") || lm.includes("570"))
@@ -152,13 +148,7 @@ const sendMessageToAI = async (
     return { content: `🦋 **${v.name}** — ${v.description}\n\n• **Puissance:** ${v.specs.power}\n• **Portes papillon** • **Année:** ${v.specs.year}\n\n💰 **Tarifs et caution :** consultez la fiche complète ici :\n👉 **Menu "Véhicules" → McLaren 570S**\n\nVous y trouverez tous les forfaits, km inclus et conditions.` + whatsappCta() };
   }
 
-  // Info Maserati — guide vers la fiche véhicule sans afficher les prix
-  if (lm.includes("maserati") || lm.includes("quattroporte")) {
-    const v = VEHICLES[2];
-    return { content: `🏛️ **${v.name}** — ${v.description}\n\n• **Puissance:** ${v.specs.power}\n• **Année:** ${v.specs.year}\n\n💰 **Tarifs et caution :** consultez la fiche complète ici :\n👉 **Menu "Véhicules" → Maserati Quattroporte GTS**\n\nVous y trouverez tous les forfaits, km inclus et conditions.` + whatsappCta() };
-  }
-
-  // Calcul de prix / estimation — guide vers l'outil dédié (point #3)
+  // Calcul de prix / estimation — guide vers l'outil dédié
   const asksPriceCalc =
     lm.includes("calcul") ||
     lm.includes("combien") ||
@@ -168,13 +158,13 @@ const sendMessageToAI = async (
     lm.includes("cout ");
   if (asksPriceCalc) {
     return {
-      content: `💰 **Calculer le prix**\n\nJe ne peux pas vous donner un prix exact ici. Pour obtenir une estimation précise avec tous les forfaits et options, utilisez notre outil interactif :\n\n👉 **Menu "Véhicules" → Calculer le prix**\n\nVous pourrez y choisir le véhicule, la durée, les km supplémentaires et le transport.\n\nOu consultez directement la fiche du véhicule concerné pour voir ses tarifs.` + whatsappCta(),
+      content: `💰 **Calculer le prix**\n\nPour une estimation précise, utilisez notre calculateur :\n\n👉 **Menu "Véhicules" → Calculez le prix**\n\nChoisissez : **véhicule**, **date de début** (Lundi–Jeudi = moins cher, Vendredi–Dimanche = week-end), **durée** (3h, 6h, 12h, 24h, 48h, 72h), km supplémentaires et transport.\n\nLes prix officiels sont appliqués selon la grille tarifaire.` + whatsappCta(),
     };
   }
 
-  // Tarifs — guide vers les pages véhicules (point #3)
+  // Tarifs — guide vers les pages véhicules + explication date
   if (lm.includes("prix") || lm.includes("tarif")) {
-    return { content: `💰 **Nos tarifs**\n\nJe ne peux pas afficher les prix ici. Vous trouverez tous les tarifs détaillés sur les fiches véhicules :\n\n👉 **Menu "Véhicules" → Audi R8 V8**, **McLaren 570S** ou **Maserati Quattroporte GTS**\n\nChaque fiche présente les forfaits (3h, 6h, 12h, 24h, 48h, 72h), km inclus, caution et km supplémentaires.` + whatsappCta() };
+    return { content: `💰 **Nos tarifs**\n\nLes prix varient selon **la date de location** :\n• **Lundi–Jeudi** : tarif semaine (moins cher)\n• **Vendredi–Dimanche** : tarif week-end\n\nForfaits : 3h, 6h, 12h, 24h, 48h, 72h avec km inclus.\n\n👉 **Calculer le prix** : Menu "Véhicules" → Calculez le prix (choisissez véhicule, date, durée)\n👉 **Fiches véhicules** : Audi R8, McLaren 570S, Maserati Quattroporte\n\n📱 **WhatsApp** au **${CONTACT.phone}** pour une estimation sur mesure.` + whatsappCta() };
   }
 
   // Disponibilités — redirection vers Boboloc (temps réel)
@@ -242,7 +232,7 @@ const sendMessageToAI = async (
 
   // Âge minimum / permis
   if (lm.includes("âge") || lm.includes("age") || lm.includes("ans") && (lm.includes("minimum") || lm.includes("avoir")) || lm.includes("permis") && lm.includes("année")) {
-    return { content: `📋 **Conditions d'âge & permis**\n\n• **Âge minimum :** ${SITE_INFO.minAge} ans\n• **Permis de conduire :** valide, détenu depuis au moins ${SITE_INFO.minPermitYears} ans\n• **Documents requis :** pièce d'identité, permis, justificatif de domicile\n• **Caution :** par carte bancaire (Audi R8 : 3'000 CHF, McLaren 570S : 10'000 CHF, Maserati Quattroporte : 5'000 CHF)\n\n📱 Pour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
+    return { content: `📋 **Conditions d'âge & permis**\n\n• **Âge minimum :** ${SITE_INFO.minAge} ans\n• **Permis de conduire :** valide, détenu depuis au moins ${SITE_INFO.minPermitYears} ans\n• **Documents requis :** pièce d'identité, permis, justificatif de domicile\n• **Caution :** par carte bancaire (Audi R8 : 3'000 CHF, McLaren 570S : 10'000 CHF)\n\n📱 Pour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
   }
 
   // Caution / garantie
@@ -254,10 +244,12 @@ const sendMessageToAI = async (
   // Km inclus / kilométrage
   if (lm.includes("km") && (lm.includes("inclus") || lm.includes("forfait") || lm.includes("kilom")) || lm.includes("kilometrage")) {
     const kmInfo = VEHICLES.map((v) => {
-      const p = v.pricing[0];
-      return `• **${v.name}** — Journée : ${p.km}, forfaits week-end/mois : plus de km inclus`;
+      const p24 = v.pricing["lundi-jeudi"]?.find((x) => x.label === "24 h") ?? v.pricing["lundi-jeudi"]?.[3];
+      const km = p24?.km ?? "200 km";
+      const extra = (v.specs as { extraKmChf?: number }).extraKmChf ?? 5;
+      return `• **${v.name}** — 24 h : ${km} inclus. Km suppl. : ${extra} CHF/km`;
     }).join("\n");
-    return { content: `📏 **Kilométrage inclus**\n\n${kmInfo}\n\nAu-delà du forfait : 0,50 CHF/km. Détails complets sur la page **Véhicules** ou **Calculez le prix**.\n\n📱 Estimation sur mesure : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
+    return { content: `📏 **Kilométrage inclus**\n\n${kmInfo}\n\n**Tarifs selon la date :** Lundi–Jeudi (moins cher) / Vendredi–Dimanche (week-end). Utilisez le calculateur avec la date pour une estimation précise.\n\n📱 **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
   }
 
   // Loue ton véhicule / rentabiliser / particuliers
@@ -314,7 +306,7 @@ const sendMessageToAI = async (
 
   // Paiement / acompte
   if (lm.includes("paiement") || lm.includes("payer") || lm.includes("acompte") || lm.includes("carte bancaire")) {
-    return { content: `💳 **Paiement**\n\n• **Acompte obligatoire** pour réserver le véhicule\n• **Caution** par carte bancaire (Audi R8 : 3'000 CHF, McLaren 570S : 10'000 CHF, Maserati Quattroporte : 5'000 CHF)\n• Détails des modalités lors de la réservation\n\n📱 **WhatsApp** au **${CONTACT.phone}** pour convenir des détails.` + whatsappCta() };
+    return { content: `💳 **Paiement**\n\n• **Acompte obligatoire** pour réserver le véhicule\n• **Caution** par carte bancaire (Audi : 3'000 CHF, McLaren : 10'000 CHF)\n• Détails des modalités lors de la réservation\n\n📱 **WhatsApp** au **${CONTACT.phone}** pour convenir des détails.` + whatsappCta() };
   }
 
   // Assurance

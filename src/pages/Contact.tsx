@@ -5,6 +5,7 @@ import { ArrowLeft, Mail, Phone, MapPin, Instagram, ExternalLink } from "lucide-
 import { IoLogoWhatsapp } from "react-icons/io5";
 import { SiTiktok, SiFacebook } from "react-icons/si";
 import { CONTACT } from "@/data/chatKnowledge";
+import { LoueTonVehiculeForm } from "@/components/LoueTonVehiculeForm";
 
 const CARD_BASE =
   "relative overflow-hidden rounded-2xl border p-6 transition-all duration-500 cursor-pointer " +
@@ -184,6 +185,28 @@ const Contact = () => {
             <div className="grid gap-4 sm:grid-cols-3">
               {direct.map((item, i) => renderCard(item, i, 0.3))}
             </div>
+          </div>
+
+          {/* Loue ton véhicule */}
+          <div className="mb-8">
+            <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground mb-4">
+              Loue ton véhicule
+            </h2>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className={`rounded-2xl border border-border bg-card/50 backdrop-blur-sm overflow-hidden ${
+                "shadow-[0_0_12px_rgba(255,255,255,0.08),0_0_24px_rgba(255,255,255,0.04)]"
+              }`}
+            >
+              <div className="p-6">
+                <p className="text-muted-foreground text-sm mb-6">
+                  Proposez votre véhicule à la location via Rebellion Luxury. Remplissez vos coordonnées et les informations du véhicule, nous vous recontactons rapidement.
+                </p>
+                <LoueTonVehiculeForm embedded />
+              </div>
+            </motion.div>
           </div>
 
           {/* Réseaux sociaux */}

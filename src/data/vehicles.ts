@@ -24,8 +24,6 @@ export interface VehicleSpec {
   kilometers?: string;
   /** Optionnel : garantie */
   warranty?: string;
-  /** Prix CHF par km supplémentaire (officiel) */
-  extraKmPriceChf?: number;
 }
 
 export interface PricingTier {
@@ -59,6 +57,8 @@ export interface VehicleData {
   location: string;
   /** Lien Boboloc pour voir les disponibilités en temps réel */
   availabilityUrl?: string;
+  /** Prix par km supplémentaire (CHF) — défaut 5 */
+  extraKmPriceChf?: number;
 }
 
 export const VEHICLES_DATA: VehicleData[] = [
@@ -82,7 +82,6 @@ export const VEHICLES_DATA: VehicleData[] = [
       interiorColor: "Cuir noir",
       kilometers: "—",
       warranty: "—",
-      extraKmPriceChf: 5,
     },
     pricing: [
       { duration: "Du lundi au jeudi — 3 h", km: "50 km", price: "170 CHF" },
@@ -108,6 +107,7 @@ export const VEHICLES_DATA: VehicleData[] = [
     boite: "Automatique",
     location: "Suisse romande",
     availabilityUrl: BOBOLOC_URLS["Audi R8 V8"],
+    extraKmPriceChf: 5,
   },
   {
     slug: "mclaren-570s",
@@ -135,7 +135,6 @@ export const VEHICLES_DATA: VehicleData[] = [
       interiorColor: "—",
       kilometers: "—",
       warranty: "—",
-      extraKmPriceChf: 6,
     },
     pricing: [
       { duration: "Du lundi au jeudi — 3 h", km: "50 km", price: "390 CHF" },
@@ -161,6 +160,7 @@ export const VEHICLES_DATA: VehicleData[] = [
     boite: "Automatique",
     location: "Suisse romande",
     availabilityUrl: BOBOLOC_URLS["McLaren 570S"],
+    extraKmPriceChf: 6,
   },
   {
     slug: "maserati-quattroporte-gts",
@@ -187,7 +187,6 @@ export const VEHICLES_DATA: VehicleData[] = [
       interiorColor: "Cuir beige",
       kilometers: "—",
       warranty: "—",
-      extraKmPriceChf: 5,
     },
     pricing: [
       { duration: "Du lundi au jeudi — 3 h", km: "50 km", price: "150 CHF" },
@@ -195,6 +194,7 @@ export const VEHICLES_DATA: VehicleData[] = [
       { duration: "Du lundi au jeudi — 12 h", km: "200 km", price: "350 CHF" },
       { duration: "Du lundi au jeudi — 24 h", km: "200 km", price: "420 CHF" },
       { duration: "Du lundi au jeudi — 48 h", km: "200 km", price: "600 CHF" },
+      { duration: "Du lundi au jeudi — 72 h", km: "200 km", price: "750 CHF" },
       { duration: "Du vendredi au dimanche — 3 h", km: "50 km", price: "190 CHF" },
       { duration: "Du vendredi au dimanche — 6 h", km: "100 km", price: "225 CHF" },
       { duration: "Du vendredi au dimanche — 12 h", km: "200 km", price: "390 CHF" },
@@ -211,6 +211,7 @@ export const VEHICLES_DATA: VehicleData[] = [
     transmission: "Automatique",
     boite: "Automatique",
     location: "Suisse romande",
+    extraKmPriceChf: 5,
   },
 ];
 

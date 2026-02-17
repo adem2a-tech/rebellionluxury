@@ -27,7 +27,7 @@ export const BOBOLOC_AVAILABILITY_URLS: Record<string, string> = {
   "McLaren 570S": "https://www.boboloc.com/rebellionluxury-7245/w841mVrBl2hpGgwHN0dG/carDetails",
 };
 
-/** Grille tarifaire officielle pour l'IA (alignée avec vehicles.ts et fiches véhicules) */
+/** Grille tarifaire officielle : Lundi–Jeudi (moins cher) vs Vendredi–Dimanche */
 export const VEHICLES = [
   {
     name: "Audi R8 V8",
@@ -39,22 +39,26 @@ export const VEHICLES = [
       transmission: "Automatique",
       year: 2010,
       caution: "3'000 CHF",
-      extraKmPriceChf: 5,
+      extraKmChf: 5,
     },
-    pricing: [
-      { label: "Du lundi au jeudi — 3 h", price: "170 CHF", km: "50 km" },
-      { label: "Du lundi au jeudi — 6 h", price: "210 CHF", km: "100 km" },
-      { label: "Du lundi au jeudi — 12 h", price: "390 CHF", km: "200 km" },
-      { label: "Du lundi au jeudi — 24 h", price: "470 CHF", km: "200 km" },
-      { label: "Du lundi au jeudi — 48 h", price: "670 CHF", km: "200 km" },
-      { label: "Du lundi au jeudi — 72 h", price: "830 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 3 h", price: "210 CHF", km: "50 km" },
-      { label: "Du vendredi au dimanche — 6 h", price: "250 CHF", km: "100 km" },
-      { label: "Du vendredi au dimanche — 12 h", price: "430 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 24 h", price: "510 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 48 h", price: "710 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 72 h", price: "870 CHF", km: "200 km" },
-    ],
+    pricing: {
+      "lundi-jeudi": [
+        { label: "3 h", price: "170 CHF", km: "50 km" },
+        { label: "6 h", price: "210 CHF", km: "100 km" },
+        { label: "12 h", price: "390 CHF", km: "200 km" },
+        { label: "24 h", price: "470 CHF", km: "200 km" },
+        { label: "48 h", price: "670 CHF", km: "200 km" },
+        { label: "72 h", price: "830 CHF", km: "200 km" },
+      ],
+      "vendredi-dimanche": [
+        { label: "3 h", price: "210 CHF", km: "50 km" },
+        { label: "6 h", price: "250 CHF", km: "100 km" },
+        { label: "12 h", price: "430 CHF", km: "200 km" },
+        { label: "24 h", price: "510 CHF", km: "200 km" },
+        { label: "48 h", price: "710 CHF", km: "200 km" },
+        { label: "72 h", price: "870 CHF", km: "200 km" },
+      ],
+    },
     pricePerDay: 470,
   },
   {
@@ -67,22 +71,26 @@ export const VEHICLES = [
       transmission: "Automatique",
       year: 2017,
       caution: "10'000 CHF",
-      extraKmPriceChf: 6,
+      extraKmChf: 6,
     },
-    pricing: [
-      { label: "Du lundi au jeudi — 3 h", price: "390 CHF", km: "50 km" },
-      { label: "Du lundi au jeudi — 6 h", price: "490 CHF", km: "100 km" },
-      { label: "Du lundi au jeudi — 12 h", price: "790 CHF", km: "200 km" },
-      { label: "Du lundi au jeudi — 24 h", price: "950 CHF", km: "200 km" },
-      { label: "Du lundi au jeudi — 48 h", price: "1'350 CHF", km: "200 km" },
-      { label: "Du lundi au jeudi — 72 h", price: "1'690 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 3 h", price: "450 CHF", km: "50 km" },
-      { label: "Du vendredi au dimanche — 6 h", price: "550 CHF", km: "100 km" },
-      { label: "Du vendredi au dimanche — 12 h", price: "850 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 24 h", price: "1'050 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 48 h", price: "1'450 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 72 h", price: "1'790 CHF", km: "200 km" },
-    ],
+    pricing: {
+      "lundi-jeudi": [
+        { label: "3 h", price: "390 CHF", km: "50 km" },
+        { label: "6 h", price: "490 CHF", km: "100 km" },
+        { label: "12 h", price: "790 CHF", km: "200 km" },
+        { label: "24 h", price: "950 CHF", km: "200 km" },
+        { label: "48 h", price: "1'350 CHF", km: "200 km" },
+        { label: "72 h", price: "1'690 CHF", km: "200 km" },
+      ],
+      "vendredi-dimanche": [
+        { label: "3 h", price: "450 CHF", km: "50 km" },
+        { label: "6 h", price: "550 CHF", km: "100 km" },
+        { label: "12 h", price: "850 CHF", km: "200 km" },
+        { label: "24 h", price: "1'050 CHF", km: "200 km" },
+        { label: "48 h", price: "1'450 CHF", km: "200 km" },
+        { label: "72 h", price: "1'790 CHF", km: "200 km" },
+      ],
+    },
     pricePerDay: 950,
   },
   {
@@ -95,21 +103,26 @@ export const VEHICLES = [
       transmission: "Automatique",
       year: 2019,
       caution: "5'000 CHF",
-      extraKmPriceChf: 5,
+      extraKmChf: 5,
     },
-    pricing: [
-      { label: "Du lundi au jeudi — 3 h", price: "150 CHF", km: "50 km" },
-      { label: "Du lundi au jeudi — 6 h", price: "190 CHF", km: "100 km" },
-      { label: "Du lundi au jeudi — 12 h", price: "350 CHF", km: "200 km" },
-      { label: "Du lundi au jeudi — 24 h", price: "420 CHF", km: "200 km" },
-      { label: "Du lundi au jeudi — 48 h", price: "600 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 3 h", price: "190 CHF", km: "50 km" },
-      { label: "Du vendredi au dimanche — 6 h", price: "225 CHF", km: "100 km" },
-      { label: "Du vendredi au dimanche — 12 h", price: "390 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 24 h", price: "460 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 48 h", price: "640 CHF", km: "200 km" },
-      { label: "Du vendredi au dimanche — 72 h", price: "780 CHF", km: "200 km" },
-    ],
+    pricing: {
+      "lundi-jeudi": [
+        { label: "3 h", price: "150 CHF", km: "50 km" },
+        { label: "6 h", price: "190 CHF", km: "100 km" },
+        { label: "12 h", price: "350 CHF", km: "200 km" },
+        { label: "24 h", price: "420 CHF", km: "200 km" },
+        { label: "48 h", price: "600 CHF", km: "200 km" },
+        { label: "72 h", price: "750 CHF", km: "200 km" },
+      ],
+      "vendredi-dimanche": [
+        { label: "3 h", price: "190 CHF", km: "50 km" },
+        { label: "6 h", price: "225 CHF", km: "100 km" },
+        { label: "12 h", price: "390 CHF", km: "200 km" },
+        { label: "24 h", price: "460 CHF", km: "200 km" },
+        { label: "48 h", price: "640 CHF", km: "200 km" },
+        { label: "72 h", price: "780 CHF", km: "200 km" },
+      ],
+    },
     pricePerDay: 420,
   },
 ] as const;
@@ -127,9 +140,10 @@ export const SITE_INFO = {
   location: "Evionnaz, Valais",
   region: "Suisse romande",
   transportPricePerKm: 2,
-  /** Prix par km supplémentaire — variable selon véhicule (Audi/Maserati 5 CHF, McLaren 6 CHF) */
-  extraKmPriceAudiMaserati: 5,
-  extraKmPriceMclaren: 6,
+  /** Tarifs km supplémentaires varient : Audi/Maserati 5 CHF, McLaren 6 CHF */
+  extraKmPriceAudi: 5,
+  extraKmPriceMaserati: 5,
+  extraKmPriceMcLaren: 6,
   minAge: 25,
   minPermitYears: 2,
   pages: {
