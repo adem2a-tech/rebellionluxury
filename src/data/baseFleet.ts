@@ -70,6 +70,7 @@ export function updateBaseVehicle(slug: string, input: BaseFleetInput): VehicleD
     interiorColor: existing.specs?.interiorColor ?? "—",
     kilometers: "—",
     warranty: "—",
+    extraKmPriceChf: existing.specs?.extraKmPriceChf ?? 5,
   };
 
   const pricing = input.pricing.length > 0 ? input.pricing : existing.pricing;

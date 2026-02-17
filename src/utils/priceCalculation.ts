@@ -6,7 +6,7 @@
 import { getAllVehicles, getVehicleBySlug, type VehicleData, type PricingTier } from "@/data/vehicles";
 
 export const TRANSPORT_PRICE_PER_KM = 2; // CHF
-export const EXTRA_KM_PRICE = 0.5; // CHF/km au-delà du forfait inclus
+export const DEFAULT_EXTRA_KM_PRICE = 5; // CHF/km par défaut si non spécifié
 
 export interface PriceBreakdown {
   vehicleName: string;
@@ -32,15 +32,22 @@ function parseKmValue(kmStr: string): number {
   return parseInt(kmStr.replace(/[\s']/g, ""), 10) || 0;
 }
 
-/** Mapping mots-clés → label de forfait (vehicles.ts) */
-const DURATION_KEYWORDS: { keywords: RegExp[]; tierPattern: string }[] = [
-  { keywords: [/lundi\s*( au | à | a )\s*vendredi/i, /lun\.?\s*vend/i, /5\s*j(?:our)?s?/], tierPattern: "Lundi au vendredi" },
-  { keywords: [/lundi\s*( au | à | a )\s*lundi/i, /semaine\s*complète/i, /7\s*j(?:our)?s?/], tierPattern: "Lundi au lundi" },
-  { keywords: [/vendredi\s*( au | à | a )\s*dimanche/i, /week[- ]?end/i, /weekend/i, /3\s*j(?:our)?s?/], tierPattern: "Vendredi au dimanche" },
-  { keywords: [/vendredi\s*( au | à | a )\s*lundi/i, /4\s*j(?:our)?s?/], tierPattern: "Vendredi au lundi" },
-  { keywords: [/mois/i, /30\s*j(?:our)?s?/], tierPattern: "Mois (30 jours)" },
-  { keywords: [/journée/i, /24h/i, /1\s*j(?:our)?\b/], tierPattern: "Journée (24h)" },
-];
+/** Heures par jour pour mapping jours → forfait (grille officielle: 3h, 6h, 12h, 24h, 48h, 72h) */
+const HOURS_BY_DAYS: Record<number, number> = {
+  1: 24,
+  2: 48,
+  3: 72,
+};
+
+/** Cherche un forfait par nombre d'heures (ex: 24, 48, 72) — priorité vendredi-dimanche (weekend), puis lundi-jeudi */
+function findTierByHours(pricing: PricingTier[], hours: number): PricingTier | null {
+  const hStr = `${hours} h`;
+  const d = (p: PricingTier) => p.duration.toLowerCase();
+  const weekend = pricing.find((p) => d(p).includes("vendredi") && d(p).includes(hStr));
+  if (weekend) return weekend;
+  const weekday = pricing.find((p) => d(p).includes("lundi") && d(p).includes(hStr));
+  return weekday || null;
+}
 
 function findMatchingTier(vehicle: VehicleData, durationKeyOrDays: string | number): { tier: PricingTier; label: string } | null {
   const pricing = vehicle.pricing;
@@ -48,14 +55,9 @@ function findMatchingTier(vehicle: VehicleData, durationKeyOrDays: string | numb
 
   if (typeof durationKeyOrDays === "number") {
     const days = durationKeyOrDays;
-    const m = (label: string) => label.toLowerCase();
-    if (days <= 1) return { tier: pricing.find((p) => m(p.duration).includes("journée")) || pricing[0], label: "Journée (24h)" };
-    if (days >= 25) return { tier: pricing.find((p) => m(p.duration).includes("mois")) || pricing[pricing.length - 1], label: "Mois (30 jours)" };
-    if (days >= 6) return { tier: pricing.find((p) => m(p.duration).includes("lundi au lundi")) || pricing.find((p) => m(p.duration).includes("lundi"))!, label: "Lundi au lundi" };
-    if (days >= 4) return { tier: pricing.find((p) => m(p.duration).includes("vendredi au lundi")) || pricing.find((p) => m(p.duration).includes("vendredi"))!, label: "Vendredi au lundi" };
-    if (days >= 3) return { tier: pricing.find((p) => m(p.duration).includes("vendredi au dimanche")) || pricing.find((p) => m(p.duration).includes("vendredi"))!, label: "Vendredi au dimanche" };
-    if (days >= 2) return { tier: pricing.find((p) => m(p.duration).includes("lundi au vendredi")) || pricing.find((p) => m(p.duration).includes("lundi")) || pricing[0], label: "Lundi au vendredi" };
-    return { tier: pricing.find((p) => m(p.duration).includes("journée")) || pricing[0], label: "Journée (24h)" };
+    const hours = HOURS_BY_DAYS[days] ?? Math.min(72, days * 24);
+    const tier = findTierByHours(pricing, hours) ?? findTierByHours(pricing, 24) ?? pricing.find((p) => p.duration.toLowerCase().includes("24 h")) ?? pricing[0];
+    return { tier, label: tier.duration };
   }
 
   const key = durationKeyOrDays.toLowerCase();
@@ -65,6 +67,10 @@ function findMatchingTier(vehicle: VehicleData, durationKeyOrDays: string | numb
     }
   }
   return null;
+}
+
+function getExtraKmPrice(vehicle: VehicleData): number {
+  return vehicle.specs?.extraKmPriceChf ?? DEFAULT_EXTRA_KM_PRICE;
 }
 
 /** Calcule le prix en utilisant les forfaits réels du site */
@@ -83,7 +89,8 @@ export function calculatePriceFromSite(
   const locationPrice = parsePriceValue(tier.price);
   const kmInclus = parseKmValue(tier.km);
   const extraKm = isExtraKm ? requestedKmOrExtra : Math.max(0, requestedKmOrExtra - kmInclus);
-  const extraKmPrice = Math.round(extraKm * EXTRA_KM_PRICE);
+  const pricePerKm = getExtraKmPrice(vehicle);
+  const extraKmPrice = Math.round(extraKm * pricePerKm);
   const transportPrice = transportKm * TRANSPORT_PRICE_PER_KM;
   const total = locationPrice + extraKmPrice + transportPrice;
   const days = typeof durationKeyOrDays === "number" ? durationKeyOrDays : 1;
@@ -107,9 +114,12 @@ export function calculateRentalPrice(
   days: number,
   extraKm: number
 ): { locationPrice: number; extraKmPrice: number; caution: string; vehicleName: string } | null {
+  const vehicle = getVehicleBySlug(vehicleSlug);
+  if (!vehicle) return null;
   const result = calculatePriceFromSite(vehicleSlug, days, 0, 0);
   if (!result) return null;
-  const extraKmPrice = Math.round(extraKm * EXTRA_KM_PRICE);
+  const pricePerKm = getExtraKmPrice(vehicle);
+  const extraKmPrice = Math.round(extraKm * pricePerKm);
   return {
     locationPrice: result.locationPrice,
     extraKmPrice,
@@ -154,6 +164,7 @@ export function findVehicleByQuery(query: string): { slug: string; name: string 
     if (vn.includes(q) || v.slug.includes(q.replace(/\s/g, "-"))) return { slug: v.slug, name: v.name };
     if ((q.includes("audi") || q.includes("r8")) && vn.includes("audi")) return { slug: v.slug, name: v.name };
     if ((q.includes("mclaren") || q.includes("570")) && vn.includes("mclaren")) return { slug: v.slug, name: v.name };
+    if ((q.includes("maserati") || q.includes("quattroporte")) && vn.includes("maserati")) return { slug: v.slug, name: v.name };
   }
   return null;
 }
@@ -206,5 +217,6 @@ export function parsePriceQuery(message: string): ParsedPriceQuery {
 
   if (m.includes("audi") || m.includes("r8")) result.vehicleQuery = "audi r8";
   if (m.includes("mclaren") || m.includes("570")) result.vehicleQuery = "mclaren 570";
+  if (m.includes("maserati") || m.includes("quattroporte")) result.vehicleQuery = "maserati";
   return result;
 }

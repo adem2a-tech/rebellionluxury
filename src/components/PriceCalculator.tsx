@@ -86,7 +86,9 @@ export default function PriceCalculator() {
             placeholder="0"
             className="bg-background"
           />
-          <p className="text-xs text-muted-foreground">Tarif km sup. indicatif selon véhicule.</p>
+          <p className="text-xs text-muted-foreground">
+            {vehicle?.specs?.extraKmPriceChf ? `${vehicle.specs.extraKmPriceChf} CHF/km` : "Tarif selon véhicule"} au-delà des km inclus.
+          </p>
         </div>
         <div className="space-y-2">
           <Label>Km transport (A→B→C)</Label>
@@ -118,7 +120,7 @@ export default function PriceCalculator() {
           {breakdown.extraKmPrice > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Km supplémentaires ({breakdown.extraKm} km)</span>
-              <span className="font-semibold">~{breakdown.extraKmPrice} CHF</span>
+              <span className="font-semibold">{breakdown.extraKmPrice} CHF</span>
             </div>
           )}
           {breakdown.transportPrice > 0 && (
