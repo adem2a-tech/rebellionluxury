@@ -58,11 +58,11 @@ const Header = ({ onOpenChat }: HeaderProps) => {
             className="flex items-center gap-3 shrink-0"
             aria-label="Rebellion Luxury - Accueil"
           >
-            <div className="rounded-full overflow-hidden h-8 w-8 lg:h-9 lg:w-9 shrink-0 border border-white/25 ring-1 ring-white/10">
+            <div className="rounded-full overflow-hidden h-11 w-11 lg:h-14 lg:w-14 shrink-0 border border-white/30 ring-2 ring-white/15 shadow-lg shadow-black/20 flex items-center justify-center bg-white/5">
               <img
                 src="/rebellion-luxury-logo.png"
                 alt="Rebellion Luxury"
-                className="w-full h-full object-contain"
+                className="w-[85%] h-[85%] object-contain"
               />
             </div>
             <span className="font-display text-sm lg:text-base font-semibold uppercase tracking-[0.2em] text-foreground/95">
