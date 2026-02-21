@@ -1,8 +1,10 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Calendar,
+  CalendarDays,
+  CalendarRange,
   Gauge,
   Settings,
   Shield,
@@ -11,6 +13,10 @@ import {
   Car,
   DoorOpen,
   Users,
+  Clock,
+  Briefcase,
+  Lock,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useChat } from "@/contexts/ChatContext";
@@ -19,6 +25,18 @@ import { getUnavailableUntil } from "@/data/vehicleReservations";
 import { ExternalLink } from "lucide-react";
 
 const SWIPE_THRESHOLD = 50;
+
+/** Icône et libellé court selon le type de forfait */
+function getForfaitIconAndLabel(duration: string): { icon: React.ReactNode; title: string; subtitle: string } {
+  const d = duration.toLowerCase();
+  if (d.startsWith("24 heures")) return { icon: <Clock className="w-5 h-5 text-[#D4A574]" />, title: "24 heures", subtitle: "Tarif journalier" };
+  if (d.startsWith("week-end court")) return { icon: <CalendarDays className="w-5 h-5 text-[#D4A574]" />, title: "Week-end court", subtitle: "Vendredi → Dimanche" };
+  if (d.startsWith("week-end long")) return { icon: <CalendarRange className="w-5 h-5 text-[#D4A574]" />, title: "Week-end long", subtitle: "Vendredi → Lundi" };
+  if (d.startsWith("semaine courte")) return { icon: <Briefcase className="w-5 h-5 text-[#D4A574]" />, title: "Semaine courte", subtitle: "Lundi → Vendredi (5 jours)" };
+  if (d.startsWith("semaine complète")) return { icon: <Calendar className="w-5 h-5 text-[#D4A574]" />, title: "Semaine complète", subtitle: "Location de 7 jours" };
+  if (d.startsWith("mois")) return { icon: <CalendarDays className="w-5 h-5 text-[#D4A574]" />, title: "Mois", subtitle: "Location de 30 jours" };
+  return { icon: <Clock className="w-5 h-5 text-[#D4A574]" />, title: duration.split("(")[0]?.trim() || duration, subtitle: "" };
+}
 
 const VehiculeDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -286,25 +304,60 @@ const VehiculeDetail = () => {
               </ul>
             </div>
 
-            {/* Section Durée / Km autorisés / Prix */}
+            {/* Section Tarifs de location — cartes avec icônes */}
             <div>
-              <h3 className="text-white font-semibold text-base pb-2 border-b border-white/30 mb-3">
-                Durée / Km autorisés / Prix
+              <h3 className="text-white font-semibold text-lg pb-2 border-b border-white/30 mb-4 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-[#D4A574]" />
+                Tarifs de location
               </h3>
-              <ul className="divide-y divide-white/20">
-                {vehicle.pricing.map((tier, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center justify-between gap-4 py-2.5 text-sm"
-                  >
-                    <span className="text-white/90 shrink-0">{tier.duration}</span>
-                    <span className="text-white/80 text-center shrink-0">{tier.km}</span>
-                    <span className="font-bold text-[#D4A574] text-base shrink-0">
-                      {tier.price}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                {vehicle.pricing.map((tier, i) => {
+                  const { icon, title, subtitle } = getForfaitIconAndLabel(tier.duration);
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="rounded-xl bg-white/5 border border-white/15 p-3 flex flex-col gap-1"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          {icon}
+                          <div>
+                            <p className="text-white font-medium text-sm">{title}</p>
+                            {subtitle && (
+                              <p className="text-white/60 text-xs">{subtitle}</p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="font-bold text-[#D4A574] text-base shrink-0">
+                          {tier.price}
+                        </span>
+                      </div>
+                      <p className="text-white/70 text-xs mt-1">{tier.km} inclus</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="rounded-lg bg-amber-500/15 border border-amber-500/30 px-3 py-2.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-amber-400" />
+                    <div>
+                      <p className="text-amber-100 font-medium text-sm">Caution requise</p>
+                      <p className="text-amber-200/70 text-xs">Empreinte bancaire ou dépôt de garantie</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-amber-200 text-sm shrink-0">{vehicle.specs.caution}</span>
+                </div>
+                <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-2.5 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-blue-400 shrink-0" />
+                  <p className="text-blue-100/90 text-sm">
+                    Kilomètre supplémentaire : <span className="font-semibold text-blue-200">{vehicle.extraKmPriceChf ?? 5} CHF/km</span>
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Disponibilités en temps réel — lien Boboloc */}

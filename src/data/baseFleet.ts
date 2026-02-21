@@ -73,8 +73,9 @@ export function updateBaseVehicle(slug: string, input: BaseFleetInput): VehicleD
   };
 
   const pricing = input.pricing.length > 0 ? input.pricing : existing.pricing;
-  const price24 = pricing.find((p) => p.duration.includes("24 h"))?.price
-    ? parseInt(pricing.find((p) => p.duration.includes("24 h"))!.price.replace(/\D/g, ""), 10)
+  const tier24 = pricing.find((p) => p.duration.startsWith("24 heures") || p.duration.includes("24 h"));
+  const price24 = tier24?.price
+    ? parseInt(tier24.price.replace(/\D/g, ""), 10)
     : parseInt(pricing[0]?.price.replace(/\D/g, "") ?? "0", 10) || 0;
 
   const vehicle: VehicleData = {

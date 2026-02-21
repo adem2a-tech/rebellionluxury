@@ -48,58 +48,63 @@ const Header = ({ onOpenChat }: HeaderProps) => {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-border led-subtle"
+      className="fixed top-0 left-0 right-0 z-50 bg-black/98 backdrop-blur-xl border-b border-white/[0.08]"
     >
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-20 gap-8">
-          {/* Logo */}
+        <div className="flex items-center justify-between h-16 lg:h-20 gap-6 lg:gap-10">
+          {/* Logo + Nom — style luxe */}
           <Link
             to="/"
-            className="flex items-center gap-3 shrink-0"
+            className="flex items-center gap-3 shrink-0 group"
             aria-label="Rebellion Luxury - Accueil"
           >
-            <div className="rounded-full overflow-hidden h-11 w-11 lg:h-14 lg:w-14 shrink-0 border border-white/30 ring-2 ring-white/15 shadow-lg shadow-black/20 flex items-center justify-center bg-white/5">
+            <div className="rounded-full overflow-hidden h-11 w-11 lg:h-12 lg:w-12 shrink-0 border border-white/25 ring-1 ring-white/10 flex items-center justify-center bg-white/[0.06] transition-all duration-300 group-hover:border-white/40 group-hover:ring-white/20">
               <img
                 src="/rebellion-luxury-logo.png"
                 alt="Rebellion Luxury"
-                className="w-[85%] h-[85%] object-contain"
+                className="w-[82%] h-[82%] object-contain"
               />
             </div>
-            <span className="font-display text-sm lg:text-base font-semibold uppercase tracking-[0.2em] text-foreground/95">
-              Rebellion Luxury
+            <span className="font-luxury text-lg lg:text-xl font-semibold tracking-[0.28em] text-white/95 uppercase group-hover:text-white transition-colors duration-300">
+              <span className="font-bold tracking-[0.32em]">Rebellion</span>
+              <span className="font-medium text-white/90 tracking-[0.2em] ml-0.5">Luxury</span>
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-2">
+          {/* Desktop Nav — menu haut de gamme */}
+          <nav className="hidden lg:flex items-center gap-0.5">
             {navItems.map((item) => {
               const isActive =
                 location.pathname === item.href ||
                 ("subItems" in item && item.subItems.some((s) => location.pathname === s.href));
+              const navLinkClass = `relative px-4 py-3 text-[11px] font-medium uppercase tracking-[0.22em] transition-all duration-300 flex items-center gap-1.5 rounded-md ${
+                isActive
+                  ? "text-white"
+                  : "text-white/60 hover:text-white"
+              }`;
+              const underlineClass = "absolute bottom-0 left-4 right-4 h-px bg-white/40 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left";
               if ("subItems" in item && item.subItems) {
                 return (
                   <DropdownMenu key={item.label}>
                     <DropdownMenuTrigger asChild>
-                      <button
-                        className={`px-4 py-2.5 text-xs font-medium uppercase tracking-[0.15em] transition-all duration-200 flex items-center gap-2 rounded-lg hover:bg-white/5 ${
-                          isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {item.label}
-                        <ChevronDown className="w-3 h-3 opacity-70" />
+                      <button className={`${navLinkClass} group hover:bg-white/[0.04]`}>
+                        <span className="whitespace-nowrap">{item.label}</span>
+                        <ChevronDown className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                        <span className={isActive ? "absolute bottom-0 left-4 right-4 h-px bg-white/50" : underlineClass} />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="start"
-                      className="flex flex-row gap-1 p-2 min-w-0 w-auto border-border/80 bg-black/95 backdrop-blur-xl rounded-xl shadow-xl shadow-black/30"
+                      className="flex flex-row gap-0.5 p-2 min-w-0 w-auto border border-white/10 bg-black/95 backdrop-blur-xl rounded-lg shadow-2xl shadow-black/50"
                     >
-                      {/* Supprimé le lien dupliqué — les subItems suffisent */}
                       {item.subItems.map((sub) => (
                         <Link
                           key={sub.label}
                           to={sub.href}
-                          className={`px-4 py-2.5 text-xs font-medium uppercase tracking-wider rounded-lg whitespace-nowrap transition-colors ${
-                            location.pathname === sub.href ? "text-white bg-white/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                          className={`px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] rounded-md whitespace-nowrap transition-all duration-200 ${
+                            location.pathname === sub.href
+                              ? "text-white bg-white/10"
+                              : "text-white/70 hover:text-white hover:bg-white/5"
                           }`}
                         >
                           {sub.label}
@@ -110,28 +115,23 @@ const Header = ({ onOpenChat }: HeaderProps) => {
                 );
               }
               return (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  className={`px-4 py-2.5 text-xs font-medium uppercase tracking-[0.15em] rounded-lg transition-all duration-200 ${
-                    isActive ? "text-white" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                  }`}
-                >
-                  {item.label}
+                <Link key={item.label} to={item.href} className={`${navLinkClass} group hover:bg-white/[0.04]`}>
+                  <span className="whitespace-nowrap">{item.label}</span>
+                  <span className={isActive ? "absolute bottom-0 left-4 right-4 h-px bg-white/50" : underlineClass} />
                 </Link>
               );
             })}
           </nav>
 
-          {/* Compte utilisateur + CTA */}
-          <div className="hidden lg:flex items-center gap-4 shrink-0">
+          {/* Compte + CTA — finition premium */}
+          <div className="hidden lg:flex items-center gap-3 shrink-0">
             <UserAccountDropdown />
-            <div className="h-6 w-px bg-white/15" aria-hidden />
+            <div className="h-5 w-px bg-white/10" aria-hidden />
             <Button
               variant="default"
               size="sm"
               onClick={() => onOpenChat()}
-              className="h-10 px-6 text-xs font-semibold uppercase tracking-[0.2em] bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-lg shadow-primary/20 transition-all duration-200 hover:shadow-primary/30"
+              className="font-luxury font-semibold text-sm tracking-[0.2em] uppercase h-10 px-5 rounded-md bg-white text-black border border-white/90 hover:bg-white/95 hover:border-white hover:shadow-[0_0_24px_rgba(255,255,255,0.15)] transition-all duration-300"
             >
               Louer un véhicule
             </Button>

@@ -21,7 +21,8 @@ export default function UserAccountDropdown({ className }: UserAccountDropdownPr
 
   if (!user) return null;
 
-  const initial = user.firstName?.charAt(0)?.toUpperCase() || "?";
+  const displayName = "EDUARDO";
+  const initial = displayName.charAt(0);
 
   return (
     <DropdownMenu>
@@ -35,7 +36,7 @@ export default function UserAccountDropdown({ className }: UserAccountDropdownPr
             <span className="text-sm font-semibold text-primary">{initial}</span>
           </div>
           <span className="hidden sm:inline text-sm font-medium max-w-[100px] truncate">
-            {user.firstName}
+            {displayName}
           </span>
           <ChevronDown className="w-4 h-4 opacity-70 shrink-0" />
         </Button>

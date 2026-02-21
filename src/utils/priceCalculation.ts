@@ -4,7 +4,7 @@
  * Durées : 3h, 6h, 12h, 24h, 48h, 72h.
  */
 
-import { getAllVehicles, getVehicleBySlug, type VehicleData, type PricingTier } from "@/data/vehicles";
+import { getAllVehicles, getVehicleBySlug, VEHICLES_DATA, type VehicleData, type PricingTier } from "@/data/vehicles";
 
 export const TRANSPORT_PRICE_PER_KM = 2; // CHF
 const DEFAULT_EXTRA_KM_PRICE = 5; // CHF/km si non défini par véhicule
@@ -23,17 +23,36 @@ export interface PriceBreakdown {
   kmInclus?: number;
 }
 
-export type DurationKey = "3 h" | "6 h" | "12 h" | "24 h" | "48 h" | "72 h";
+export type DurationKey = "24h" | "we_court" | "we_long" | "semaine_courte" | "semaine_complete" | "mois";
+
+/** Préfixes des duration dans pricing (pour matcher le forfait) */
+const FORFAIT_PREFIX: Record<DurationKey, string> = {
+  "24h": "24 heures",
+  "we_court": "Week-end court",
+  "we_long": "Week-end long",
+  "semaine_courte": "Semaine courte",
+  "semaine_complete": "Semaine complète",
+  "mois": "Mois",
+};
 
 /** Durées disponibles (ordre pour le sélecteur) */
 export const DURATION_OPTIONS: { value: DurationKey; label: string }[] = [
-  { value: "3 h", label: "3 heures" },
-  { value: "6 h", label: "6 heures" },
-  { value: "12 h", label: "12 heures" },
-  { value: "24 h", label: "24 h (1 jour)" },
-  { value: "48 h", label: "48 h (2 jours)" },
-  { value: "72 h", label: "72 h (3 jours)" },
+  { value: "24h", label: "24 h (1 jour)" },
+  { value: "we_court", label: "Week-end court (Ven–Dim)" },
+  { value: "we_long", label: "Week-end long (Ven–Lun)" },
+  { value: "semaine_courte", label: "Semaine courte (5 jours)" },
+  { value: "semaine_complete", label: "Semaine complète (7 jours)" },
+  { value: "mois", label: "Mois (30 jours)" },
 ];
+
+/** Retourne les forfaits disponibles pour un véhicule (ex. Maserati sans "Mois"). Jamais vide. */
+export function getDurationOptionsForVehicle(vehicle: { pricing: PricingTier[] } | null) {
+  if (!vehicle?.pricing?.length) return DURATION_OPTIONS;
+  const filtered = DURATION_OPTIONS.filter((opt) =>
+    vehicle.pricing.some((t) => t.duration.startsWith(FORFAIT_PREFIX[opt.value]))
+  );
+  return filtered.length > 0 ? filtered : DURATION_OPTIONS;
+}
 
 /** Extrait le montant numérique d'un prix "4'490 CHF" ou "950 CHF" */
 function parsePriceValue(priceStr: string): number {
@@ -55,40 +74,51 @@ function getExtraKmPrice(vehicle: VehicleData): number {
   return vehicle.extraKmPriceChf ?? DEFAULT_EXTRA_KM_PRICE;
 }
 
-/** Trouve le forfait correspondant : jour (lundi–jeudi vs vendredi–dimanche) + durée */
+/** Trouve le forfait correspondant au forfait sélectionné (24h, week-end, semaine, mois) */
 function findMatchingTier(
   vehicle: VehicleData,
-  durationKey: DurationKey,
-  isWeekendPricing: boolean
+  durationKey: DurationKey
 ): { tier: PricingTier; label: string } | null {
   const pricing = vehicle.pricing;
   if (!pricing?.length) return null;
-
-  const dayPattern = isWeekendPricing ? "vendredi au dimanche" : "lundi au jeudi";
-  const durationPattern = durationKey; // "3 h", "6 h", etc.
-
-  for (const p of pricing) {
-    const d = p.duration.toLowerCase();
-    if (d.includes(dayPattern) && d.includes(durationPattern)) {
-      return { tier: p, label: p.duration };
-    }
-  }
-  return null;
+  const prefix = FORFAIT_PREFIX[durationKey];
+  const tier = pricing.find((p) => p.duration.startsWith(prefix));
+  return tier ? { tier, label: tier.duration } : null;
 }
 
-/** Calcule le prix en utilisant la grille officielle (date + durée) */
+const FORFAIT_DAYS: Record<DurationKey, number> = {
+  "24h": 1,
+  "we_court": 3,
+  "we_long": 4,
+  "semaine_courte": 5,
+  "semaine_complete": 7,
+  "mois": 30,
+};
+
+/** Détecte si la grille est au format forfaits (24h, week-end, etc.) */
+function hasNewFormatPricing(pricing: PricingTier[] | undefined): boolean {
+  return !!pricing?.some((t) => t.duration.startsWith("24 heures"));
+}
+
+/** Calcule le prix en utilisant la grille officielle (forfaits) */
 export function calculatePriceFromSite(
   vehicleSlug: string,
   durationKey: DurationKey,
-  startDate: Date,
+  _startDate: Date,
   requestedKmOrExtra: number,
   transportKm: number,
   isExtraKm = false
 ): (Omit<PriceBreakdown, "days" | "extraKm"> & { forfaitLabel: string; kmInclus: number; extraKm: number }) | null {
   const vehicle = getVehicleBySlug(vehicleSlug);
   if (!vehicle) return null;
-  const isWeekendPricing = isWeekend(startDate);
-  const matched = findMatchingTier(vehicle, durationKey, isWeekendPricing);
+  // Utiliser les tarifs canoniques si la flotte (ex. localStorage) a encore l'ancien format
+  const canonical = VEHICLES_DATA.find((v) => v.slug === vehicleSlug);
+  const pricing =
+    canonical && !hasNewFormatPricing(vehicle.pricing)
+      ? canonical.pricing
+      : vehicle.pricing;
+  const vehicleForCalc: VehicleData = { ...vehicle, pricing };
+  const matched = findMatchingTier(vehicleForCalc, durationKey);
   if (!matched) return null;
   const { tier, label } = matched;
   const locationPrice = parsePriceValue(tier.price);
@@ -98,7 +128,7 @@ export function calculatePriceFromSite(
   const extraKmPrice = Math.round(extraKm * extraKmPricePerKm);
   const transportPrice = transportKm * TRANSPORT_PRICE_PER_KM;
   const total = locationPrice + extraKmPrice + transportPrice;
-  const days = durationKey === "24 h" ? 1 : durationKey === "48 h" ? 2 : durationKey === "72 h" ? 3 : 0.125;
+  const days = FORFAIT_DAYS[durationKey];
   return {
     vehicleName: vehicle.name,
     locationPrice,
@@ -192,32 +222,17 @@ export function parsePriceQuery(message: string): ParsedPriceQuery {
   const m = message.toLowerCase().trim();
   const result: ParsedPriceQuery = {};
 
-  // Durée : 3h, 6h, 12h, 24h, 48h, 72h
-  if (/\b3\s*h(?:eure)?s?\b|3h/.test(m)) result.durationKey = "3 h";
-  else if (/\b6\s*h(?:eure)?s?\b|6h/.test(m)) result.durationKey = "6 h";
-  else if (/\b12\s*h(?:eure)?s?\b|12h/.test(m)) result.durationKey = "12 h";
-  else if (/\b24\s*h|24h|1\s*jour|journée|journee/.test(m)) result.durationKey = "24 h";
-  else if (/\b48\s*h|48h|2\s*jours?/.test(m)) result.durationKey = "48 h";
-  else if (/\b72\s*h|72h|3\s*jours?/.test(m)) result.durationKey = "72 h";
+  // Durée : forfaits 24h, week-end, semaine, mois
+  if (/\b24\s*h|24h|1\s*jour|journée|journee/.test(m)) result.durationKey = "24h";
+  else if (/week[- ]?end\s*court|we\s*court|vendredi\s*dimanche/.test(m)) result.durationKey = "we_court";
+  else if (/week[- ]?end\s*long|we\s*long|vendredi\s*lundi/.test(m)) result.durationKey = "we_long";
+  else if (/semaine\s*courte|5\s*jours?/.test(m)) result.durationKey = "semaine_courte";
+  else if (/semaine\s*complète|semaine\s*complete|7\s*jours?/.test(m)) result.durationKey = "semaine_complete";
+  else if (/\bmois\b|30\s*jours?/.test(m)) result.durationKey = "mois";
 
-  // Date : lundi–jeudi vs vendredi–dimanche
-  if (/lundi\s*(au|à|a)\s*jeudi|en\s*semaine| semaine\b/.test(m)) {
-    // Prochain jour lundi–jeudi
-    const d = new Date();
-    const day = d.getDay();
-    if (day === 0) d.setDate(d.getDate() + 1); // lundi
-    else if (day >= 5) d.setDate(d.getDate() + (8 - day)); // lundi suivant
-    result.startDate = d;
-  } else if (/vendredi\s*(au|à|a)\s*dimanche|week[- ]?end|weekend/.test(m)) {
-    const d = new Date();
-    const day = d.getDay();
-    if (day < 5) d.setDate(d.getDate() + (5 - day)); // prochain vendredi
-    result.startDate = d;
-  } else {
-    result.startDate = new Date();
-  }
+  result.startDate = new Date();
 
-  // Jours (legacy pour mapping)
+  // Jours (mapping vers forfait)
   const dayMatch =
     m.match(/(\d+)\s*j(?:our)?s?\b/i) ||
     m.match(/(\d+)\s*(?:jour|jours|day|days)\b/i) ||
@@ -225,9 +240,12 @@ export function parsePriceQuery(message: string): ParsedPriceQuery {
     m.match(/(\d+)\s*(?:j\b)/);
   if (dayMatch && !result.durationKey) {
     const n = parseInt(dayMatch[1], 10);
-    if (n === 1) result.durationKey = "24 h";
-    else if (n === 2) result.durationKey = "48 h";
-    else if (n === 3) result.durationKey = "72 h";
+    if (n <= 1) result.durationKey = "24h";
+    else if (n <= 3) result.durationKey = "we_court";
+    else if (n <= 4) result.durationKey = "we_long";
+    else if (n <= 5) result.durationKey = "semaine_courte";
+    else if (n <= 7) result.durationKey = "semaine_complete";
+    else if (n >= 30) result.durationKey = "mois";
   }
 
   const transportMatch =

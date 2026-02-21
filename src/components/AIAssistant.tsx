@@ -244,12 +244,12 @@ const sendMessageToAI = async (
   // Km inclus / kilométrage
   if (lm.includes("km") && (lm.includes("inclus") || lm.includes("forfait") || lm.includes("kilom")) || lm.includes("kilometrage")) {
     const kmInfo = VEHICLES.map((v) => {
-      const p24 = v.pricing["lundi-jeudi"]?.find((x) => x.label === "24 h") ?? v.pricing["lundi-jeudi"]?.[3];
+      const p24 = v.pricing["24h"];
       const km = p24?.km ?? "200 km";
-      const extra = (v.specs as { extraKmChf?: number }).extraKmChf ?? 5;
+      const extra = v.specs.extraKmChf ?? 5;
       return `• **${v.name}** — 24 h : ${km} inclus. Km suppl. : ${extra} CHF/km`;
     }).join("\n");
-    return { content: `📏 **Kilométrage inclus**\n\n${kmInfo}\n\n**Tarifs selon la date :** Lundi–Jeudi (moins cher) / Vendredi–Dimanche (week-end). Utilisez le calculateur avec la date pour une estimation précise.\n\n📱 **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
+    return { content: `📏 **Kilométrage inclus**\n\n${kmInfo}\n\nForfaits : 24 h, week-end court/long, semaine courte/complète, mois. Utilisez le calculateur pour une estimation précise.\n\n📱 **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
   }
 
   // Loue ton véhicule / rentabiliser / particuliers

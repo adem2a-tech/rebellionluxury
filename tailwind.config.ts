@@ -17,6 +17,7 @@ export default {
         display: ["Space Grotesk", "sans-serif"],
         body: ["Inter", "sans-serif"],
         "vehicle-title": ["Russo One", "sans-serif"],
+        luxury: ["Cormorant Garamond", "Georgia", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",

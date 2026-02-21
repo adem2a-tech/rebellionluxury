@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calculator, Car, MapPin } from "lucide-react";
 import { Label } from "./ui/label";
@@ -11,40 +11,30 @@ import {
   SelectValue,
 } from "./ui/select";
 import { getAllVehicles } from "@/data/vehicles";
-import { calculateTotalPrice, DURATION_OPTIONS, type DurationKey } from "@/utils/priceCalculation";
+import { calculateTotalPrice, getDurationOptionsForVehicle, type DurationKey } from "@/utils/priceCalculation";
 
 const DAY_NAMES = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const MONTH_NAMES = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
-/** Retourne une date lundi (semaine) ou vendredi (week-end) pour le calcul */
-function getDateForPeriod(period: "weekday" | "weekend"): Date {
-  const d = new Date();
-  const day = d.getDay();
-  if (period === "weekend") {
-    if (day < 5) d.setDate(d.getDate() + (5 - day));
-    return d;
-  }
-  if (day === 0) d.setDate(d.getDate() + 1);
-  else if (day >= 5) d.setDate(d.getDate() + (8 - day));
-  return d;
+const DURATION_DAYS: Record<DurationKey, number> = {
+  "24h": 1,
+  "we_court": 3,
+  "we_long": 4,
+  "semaine_courte": 5,
+  "semaine_complete": 7,
+  "mois": 30,
+};
+
+/** Formate un montant en CHF (ex. 1350 → "1'350 CHF") */
+function formatChf(value: number): string {
+  const s = Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  return `${s} CHF`;
 }
 
-function formatDateLabel(date: Date): string {
-  const today = new Date();
-  const isToday = date.toDateString() === today.toDateString();
-  const day = date.getDate();
-  const month = MONTH_NAMES[date.getMonth()];
-  if (isToday) return `aujourd'hui (${day} ${month})`;
-  const dayName = DAY_NAMES[date.getDay()];
-  return `le ${dayName} ${day} ${month}`;
-}
-
-/** Calcule la date de restitution à partir de la date de début + durée */
+/** Calcule la date de restitution à partir de la date de début + forfait */
 function getReturnDate(startDate: Date, durationKey: DurationKey): Date {
   const d = new Date(startDate);
-  if (durationKey === "24 h") d.setDate(d.getDate() + 1);
-  else if (durationKey === "48 h") d.setDate(d.getDate() + 2);
-  else if (durationKey === "72 h") d.setDate(d.getDate() + 3);
+  d.setDate(d.getDate() + DURATION_DAYS[durationKey]);
   return d;
 }
 
@@ -57,19 +47,32 @@ function formatReturnDate(date: Date): string {
 
 export default function PriceCalculator() {
   const [vehicleSlug, setVehicleSlug] = useState<string>("");
-  const [period, setPeriod] = useState<"weekday" | "weekend">("weekday");
-  const [durationKey, setDurationKey] = useState<DurationKey>("24 h");
+  const [durationKey, setDurationKey] = useState<DurationKey>("24h");
   const [extraKm, setExtraKm] = useState<string>("");
   const [transportKm, setTransportKm] = useState<string>("");
 
   const extraKmNum = Math.max(0, parseInt(extraKm, 10) || 0);
   const transportKmNum = Math.max(0, parseInt(transportKm, 10) || 0);
-  const startDateObj = getDateForPeriod(period);
+  const startDateObj = new Date();
 
   const vehicle = vehicleSlug ? getAllVehicles().find((v) => v.slug === vehicleSlug) : null;
+  const durationOptions = getDurationOptionsForVehicle(vehicle);
+
+  // Valeur affichée dans le Select : toujours une option valide (évite dropdown vide / Radix bug)
+  const effectiveDurationKey = durationOptions.some((o) => o.value === durationKey)
+    ? durationKey
+    : (durationOptions[0]?.value ?? "24h");
+
+  // Garder durationKey synchrone avec les options du véhicule (ex. Maserati sans "Mois")
+  useEffect(() => {
+    if (effectiveDurationKey !== durationKey) setDurationKey(effectiveDurationKey);
+  }, [effectiveDurationKey, durationKey]);
+
   const breakdown = vehicleSlug
     ? calculateTotalPrice(vehicleSlug, durationKey, startDateObj, extraKmNum, transportKmNum)
     : null;
+
+  const extraKmPricePerKm = vehicle?.extraKmPriceChf ?? 5;
 
   return (
     <motion.section
@@ -85,13 +88,13 @@ export default function PriceCalculator() {
         </h2>
       </div>
       <p className="text-muted-foreground text-sm mb-6">
-        Estimation selon le véhicule, la date de début (Lundi–Jeudi moins cher que Vendredi–Dimanche), la durée, les km supplémentaires et le transport (Evionnaz → client → Evionnaz à 2 CHF/km).
+        Estimation selon le véhicule, le forfait choisi, les km supplémentaires et le transport (Evionnaz → client → Evionnaz à 2 CHF/km).
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="space-y-2">
           <Label>Véhicule</Label>
-          <Select value={vehicleSlug} onValueChange={setVehicleSlug}>
+          <Select value={vehicleSlug} onValueChange={(v) => { setVehicleSlug(v); setDurationKey("24h"); }}>
             <SelectTrigger className="bg-background">
               <SelectValue placeholder="Choisir un véhicule" />
             </SelectTrigger>
@@ -105,25 +108,16 @@ export default function PriceCalculator() {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Période</Label>
-          <Select value={period} onValueChange={(v) => setPeriod(v as "weekday" | "weekend")}>
+          <Label>Forfait</Label>
+          <Select
+            value={effectiveDurationKey}
+            onValueChange={(v) => setDurationKey(v as DurationKey)}
+          >
             <SelectTrigger className="bg-background">
-              <SelectValue />
+              <SelectValue placeholder="Choisir un forfait" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="weekday">Lundi–Jeudi (moins cher)</SelectItem>
-              <SelectItem value="weekend">Vendredi–Dimanche</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Durée</Label>
-          <Select value={durationKey} onValueChange={(v) => setDurationKey(v as DurationKey)}>
-            <SelectTrigger className="bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DURATION_OPTIONS.map((opt) => (
+              {durationOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
@@ -159,48 +153,61 @@ export default function PriceCalculator() {
         </div>
       </div>
 
+      {vehicleSlug && !breakdown && (
+        <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-200/90">
+          Impossible d&apos;afficher le détail pour ce véhicule. Consultez la fiche du véhicule pour les tarifs.
+        </div>
+      )}
+
       {breakdown && (
-        <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2">
-          <div className="space-y-1 pb-2 border-b border-border">
-            <p className="text-sm text-foreground font-medium">
-              Si vous louez {formatDateLabel(startDateObj)} pour {DURATION_OPTIONS.find((o) => o.value === durationKey)?.label ?? durationKey} → {breakdown.locationPrice} CHF
+        <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-3">
+          <div className="pb-3 border-b border-border space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              {breakdown.vehicleName}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground">
+              Forfait {durationOptions.find((o) => o.value === durationKey)?.label ?? durationKey} — {formatChf(breakdown.locationPrice)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {breakdown.kmInclus != null && breakdown.kmInclus > 0
+                ? `${breakdown.kmInclus.toLocaleString("de-CH")} km inclus dans le forfait. Au-delà : ${extraKmPricePerKm} CHF/km`
+                : "Km selon forfait"}
+            </p>
+            <p className="text-xs text-muted-foreground">
               À rendre le {formatReturnDate(getReturnDate(startDateObj, durationKey))}
             </p>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground flex items-center gap-1">
               <Car className="w-4 h-4 text-primary" />
-              Location ({breakdown.forfaitLabel || `${breakdown.days} j`})
+              Location
             </span>
-            <span className="font-semibold">{breakdown.locationPrice} CHF</span>
+            <span className="font-semibold">{formatChf(breakdown.locationPrice)}</span>
           </div>
-          {breakdown.kmInclus !== undefined && breakdown.kmInclus > 0 && (
-            <p className="text-xs text-muted-foreground">— {breakdown.kmInclus} km inclus</p>
-          )}
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Caution (à bloquer)</span>
             <span className="font-semibold">{breakdown.caution}</span>
           </div>
-          {breakdown.extraKmPrice > 0 && (
+          {breakdown.extraKm > 0 && breakdown.extraKmPrice > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Km supplémentaires ({breakdown.extraKm} km)</span>
-              <span className="font-semibold">{breakdown.extraKmPrice} CHF</span>
+              <span className="text-muted-foreground">
+                Km supplémentaires ({breakdown.extraKm} km × {extraKmPricePerKm} CHF/km)
+              </span>
+              <span className="font-semibold">{formatChf(breakdown.extraKmPrice)}</span>
             </div>
           )}
-          {breakdown.transportPrice > 0 && (
+          {breakdown.transportKm > 0 && breakdown.transportPrice > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground flex items-center gap-1">
                 <MapPin className="w-4 h-4 text-primary" />
-                Transport ({breakdown.transportKm} km)
+                Transport ({breakdown.transportKm} km × 2 CHF/km)
               </span>
-              <span className="font-semibold">{breakdown.transportPrice} CHF</span>
+              <span className="font-semibold">{formatChf(breakdown.transportPrice)}</span>
             </div>
           )}
-          <div className="flex justify-between pt-2 border-t border-border font-bold text-primary text-base">
-            <span>En gros</span>
-            <span>{breakdown.total} CHF</span>
+          <div className="flex justify-between pt-3 border-t border-border font-bold text-primary text-base">
+            <span>Total à payer</span>
+            <span>{formatChf(breakdown.total)}</span>
           </div>
         </div>
       )}
