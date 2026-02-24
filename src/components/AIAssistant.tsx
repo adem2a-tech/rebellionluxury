@@ -49,7 +49,7 @@ function looksLikeFollowUp(text: string, hasPriceOrRentIntent: boolean): boolean
   if (t.length > 55) return false;
   if (hasPriceOrRentIntent) return true;
   const followUpStart = /^(et |pour |combien|le prix|son prix|ça fait|et pour|pour 2 jours|pour 3 jours|et pour 2|réserver|louer|tarif|estimation|dis[- ]?moi|c'est quoi le)\b/i;
-  const followUpWord = /\b(prix|tarif|combien|coût|cout|réserver|louer|2 jours|3 jours|week-?end|semaine|caution|dispo)\b/i;
+  const followUpWord = /\b(prix|tarif|combien|coût|cout|réserver|louer|2 jours|3 jours|week-?end|semaine|caution|dispo|chevaux|ch\b|cv\b|boîte|boite|transmission|auto|manuel)\b/i;
   return followUpStart.test(t) || followUpWord.test(t);
 }
 
@@ -222,22 +222,21 @@ const sendMessageToAI = async (
     return { content: `📸 **Nous suivre sur Instagram**\n\nRetrouvez nos supercars et l'actualité Rebellion Luxury : ${CONTACT.instagramUrl}\n\n📱 **Pour réserver :** WhatsApp au **${CONTACT.phone}** — le plus simple pour finaliser une location !` + whatsappCta() };
   }
 
-  // Questions ciblées sur un véhicule (chevaux, boîte, transmission) — flotte + Espace pro
-  const asksChevaux = /\b(chevaux|ch|puissance|puissant)\b/i.test(lm);
-  const asksBoite = /\b(boîte|boite|transmission|auto|manuel|automatique|manuelle)\b/i.test(lm);
-  if (vehicleMatch && (asksChevaux || asksBoite)) {
+  // Questions ciblées sur un véhicule (chevaux, boîte, transmission, caractéristiques) — flotte + Espace pro → TOUT donner
+  const asksSpecs =
+    /\b(chevaux|ch\b|cv\b|puissance|puissant)\b/i.test(lm) ||
+    /\b(boîte|boite|transmission|auto|manuel|automatique|manuelle|séquentielle|vitesses)\b/i.test(lm) ||
+    /\b(caractéristiques|caracteristiques|fiche|specs|spec\b|année|annee|type)\b/i.test(lm) ||
+    /\b(combien de ch|elle a quoi|il a quoi|c'est quoi la boîte)\b/i.test(lm);
+  if (vehicleMatch && asksSpecs) {
     const v = getVehicleBySlug(vehicleMatch.slug);
     if (v) {
-      const power = v.specs?.power ?? "—";
-      const trans = v.specs?.transmission || v.transmission || v.boite || "—";
-      if (asksChevaux) {
-        return { content: `🏎️ **${v.name}** — **Puissance : ${power}**\n\nPour tous les détails (tarifs, caution, km) : Menu "Véhicules" → ${v.name}.` + whatsappCta() };
-      }
-      return { content: `🏎️ **${v.name}** — **Boîte : ${trans}**\n\nPour tous les détails : Menu "Véhicules" → ${v.name}.` + whatsappCta() };
+      const fullInfo = formatVehicleFullInfo(v);
+      return { content: `🏎️ **${v.name}** — tout ce que j'ai :\n\n${fullInfo}\n\n👉 Fiche complète et dispo : Menu "Véhicules" → ${v.name}.` + whatsappCta() };
     }
   }
 
-  // Info sur un véhicule — reconnu dynamiquement (flotte base + véhicules Espace pro)
+  // Info sur un véhicule — reconnu dynamiquement (flotte base + véhicules Espace pro) → fiche complète avec chevaux, boîte, prix, tout
   if (vehicleMatch) {
     const v = getVehicleBySlug(vehicleMatch.slug);
     if (v) {
@@ -256,40 +255,63 @@ const sendMessageToAI = async (
     lm.includes("cout ");
   if (asksPriceCalc) {
     return {
-      content: `💰 **Calculer le prix**\n\nPour une estimation précise, utilisez notre calculateur :\n\n👉 **Menu "Véhicules" → Calculez le prix**\n\nChoisissez : **véhicule**, **date de début** (Lundi–Jeudi = moins cher, Vendredi–Dimanche = week-end), **durée** (3h, 6h, 12h, 24h, 48h, 72h), km supplémentaires et transport.\n\nLes prix officiels sont appliqués selon la grille tarifaire.` + whatsappCta(),
+      content: `💰 **Calculer le prix**\n\nJe n'ai pas le détail des tarifs ici. **Allez ici** pour une estimation précise :\n\n👉 **Menu "Véhicules" → Calculez le prix** (véhicule, date, durée, km, transport)\n\nOu consultez la fiche du véhicule pour les forfaits. Pour une question précise : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta(),
     };
   }
 
   // Tarifs — guide vers les pages véhicules + liste dynamique de la flotte
   if (lm.includes("prix") || lm.includes("tarif")) {
     const vehicleNames = fleet.length ? fleet.map((v) => v.name).join(", ") : "Audi R8, McLaren 570S, Maserati…";
-    return { content: `💰 **Nos tarifs**\n\nLes prix varient selon **la date de location** :\n• **Lundi–Jeudi** : tarif semaine (moins cher)\n• **Vendredi–Dimanche** : tarif week-end\n\nForfaits : 3h, 6h, 12h, 24h, 48h, 72h avec km inclus.\n\n👉 **Calculer le prix** : Menu "Véhicules" → Calculez le prix (choisissez véhicule, date, durée)\n👉 **Fiches véhicules** : ${vehicleNames}\n\n📱 **WhatsApp** au **${CONTACT.phone}** pour une estimation sur mesure.` + whatsappCta() };
+    return { content: `💰 **Nos tarifs**\n\nJe n'ai pas les grilles ici. **Voici où les voir :**\n\n👉 **Menu "Véhicules"** — fiches (${vehicleNames}) et **Calculez le prix** pour une estimation\n\n📱 **WhatsApp** au **${CONTACT.phone}** pour une estimation sur mesure.` + whatsappCta() };
   }
 
-  // Disponibilités — lien direct Boboloc (page véhicules)
+  // Disponibilités — si un véhicule est mentionné → lien direct vers SES dispo (ou page générale)
   const asksAvailability =
     lm.includes("disponib") ||
     lm.includes("dispo") ||
     lm.includes("libre") ||
+    lm.includes("disponible") ||
     (lm.includes("date") && (lm.includes("réserver") || lm.includes("louer")));
-  if (asksAvailability) {
-    const directLink = `[Voir toutes les disponibilités](${BOBOLOC_VEHICLES_URL})`;
+  if (asksAvailability && vehicleMatch) {
+    const v = getVehicleBySlug(vehicleMatch.slug);
+    const dispoUrl = v?.availabilityUrl || BOBOLOC_VEHICLES_URL;
+    if (v?.availabilityUrl) {
+      return {
+        content: `📅 **Dispo de la ${v.name}**\n\nJe n'ai pas les dispos en direct ici. **Ouvrez ce lien** pour voir les disponibilités en temps réel de la **${v.name}** :\n\n👉 [Voir les disponibilités ${v.name}](${dispoUrl})\n\nVous verrez le calendrier sur Boboloc. Pour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta(),
+      };
+    }
     return {
-      content: `📅 **Disponibilités en temps réel**\n\nToutes nos disponibilités sont sur **Boboloc**. Cliquez sur le lien :\n\n👉 ${directLink}\n\nPour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta(),
+      content: `📅 **Dispo de la ${v?.name ?? vehicleMatch.name}**\n\nJe n'ai pas les dispos en direct ici. **Ouvrez ce lien** pour voir toutes nos disponibilités (la **${v?.name ?? vehicleMatch.name}** est dans la liste) :\n\n👉 [Voir toutes les disponibilités](${BOBOLOC_VEHICLES_URL})\n\nPour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta(),
+    };
+  }
+  if (asksAvailability) {
+    return {
+      content: `📅 **Disponibilités en temps réel**\n\nJe n'ai pas les dispos ici. **Ouvrez ce lien** pour voir le calendrier sur Boboloc :\n\n👉 [Voir les disponibilités](${BOBOLOC_VEHICLES_URL})\n\nPour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta(),
     };
   }
 
-  // Flotte / véhicules / supercars — liste à jour (base + véhicules Espace pro)
+  // Flotte / véhicules / supercars — liste à jour avec chevaux, boîte, prix (base + Espace pro)
   if (lm.includes("véhicule") || lm.includes("vehicule") || lm.includes("flotte") || lm.includes("supercar") || lm.includes("voiture") || lm.includes("quels véhicules")) {
     const lines = fleet.length
       ? fleet.map((v, i) => {
           const power = v.specs?.power ?? "—";
           const trans = v.specs?.transmission || v.transmission || v.boite || "—";
           const price = v.pricePerDay ? `Dès ${v.pricePerDay} CHF/jour` : "Sur demande";
-          return `${i + 1}️⃣ **${v.name}** — ${power} • Boîte ${trans} • ${price} • ${(v.description || "").slice(0, 45)}…`;
+          return `${i + 1}️⃣ **${v.name}** — ${power} • Boîte **${trans}** • ${price} • ${(v.description || "").slice(0, 45)}…`;
         }).join("\n\n")
       : "Consultez le menu **Véhicules** pour le catalogue à jour.";
-    return { content: `🚗 **Notre flotte:**\n\n${lines}\n\nBasés en **${CONTACT.location}**. Chaque véhicule a sa fiche détaillée (tarifs, caution, km inclus).` + whatsappCta() };
+    return { content: `🚗 **Notre flotte:**\n\n${lines}\n\nBasés en **${CONTACT.location}**. Chaque véhicule a sa fiche (chevaux, boîte, tarifs, caution, km).` + whatsappCta() };
+  }
+
+  // Questions générales : "vous avez des manuelles ?", "quelles voitures en auto ?", "liste des véhicules avec leur boîte"
+  const asksBoiteGeneral = /\b(auto|manuel|automatique|manuelle|boîte|boite|transmission)\b/i.test(lm) && !vehicleMatch;
+  if (asksBoiteGeneral && fleet.length > 0) {
+    const byTrans = fleet.map((v) => {
+      const trans = v.specs?.transmission || v.transmission || v.boite || "—";
+      const power = v.specs?.power ?? "—";
+      return `• **${v.name}** — ${power} • Boîte **${trans}**`;
+    }).join("\n");
+    return { content: `🏎️ **Par véhicule :**\n\n${byTrans}\n\nDétails complets : Menu **Véhicules** → fiche de chaque modèle.` + whatsappCta() };
   }
 
   // Conditions
@@ -443,10 +465,10 @@ const sendMessageToAI = async (
     return { content: `📱 **Nos réseaux**\n\n• **Instagram :** ${CONTACT.instagramUrl}\n• **Facebook :** ${CONTACT.facebookUrl}\n• **TikTok :** ${CONTACT.tiktokUrl}\n\nPour **réserver** : **WhatsApp** au **${CONTACT.phone}** — le plus rapide !` + whatsappCta() };
   }
 
-  // Fallback — l'IA répond toujours : redirection claire selon les besoins
+  // Fallback — on n'a pas reconnu la question : guider clairement, jamais sans issue
   const vehicleList = fleet.length ? fleet.map((v) => v.name).join(", ") : "Audi R8, McLaren 570S, Maserati…";
   return {
-    content: `Je suis là pour vous aider ! Voici les options :\n\n**🏎️ Louer une de nos supercars** (${vehicleList})\n→ Menu **Véhicules** pour le catalogue et les tarifs\n→ **WhatsApp** au **${CONTACT.phone}** pour réserver\n\n**🚗 Rentabiliser votre propre véhicule**\n→ Menu **Loue ton véhicule** — formulaire en ligne\n\n**📅 Disponibilités :** [Voir en temps réel](${BOBOLOC_VEHICLES_URL})\n\nPosez-moi une question précise (tarifs, transport, conditions…) ou contactez-nous au **${CONTACT.phone}** !` + whatsappCta(),
+    content: `Désolé, je n'ai pas plus d'info sur ça ici. **Voici où aller :**\n\n• **Véhicules / tarifs / dispo** → Menu **Véhicules** ou [Voir les disponibilités](${BOBOLOC_VEHICLES_URL})\n• **Louer une supercar** (${vehicleList}) → **WhatsApp** au **${CONTACT.phone}**\n• **Rentabiliser votre voiture** → Menu **Loue ton véhicule**\n\nPour une question précise, écrivez-moi (ex. « prix R8 », « dispo McLaren », « contact ») ou contactez-nous au **${CONTACT.phone}**.` + whatsappCta(),
   };
 };
 
