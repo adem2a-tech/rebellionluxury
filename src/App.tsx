@@ -28,8 +28,8 @@ import { ProAuthProvider } from "./contexts/ProAuthContext";
 import { VehicleRequestsProvider } from "./contexts/VehicleRequestsContext";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 
-/** Mettre à false quand le client répond pour réactiver le site */
-const MAINTENANCE_REMISE = true;
+/** Mettre à true pour afficher la page de remise (maintenance) */
+const MAINTENANCE_REMISE = false;
 
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 
