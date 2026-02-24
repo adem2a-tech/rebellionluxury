@@ -28,7 +28,61 @@ import { ProAuthProvider } from "./contexts/ProAuthContext";
 import { VehicleRequestsProvider } from "./contexts/VehicleRequestsContext";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 
+/** Mettre à false quand le client répond pour réactiver le site */
+const MAINTENANCE_REMISE = true;
+
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+
+const AI_FEATURES = [
+  "Répond à toutes les questions sur les caractéristiques des véhicules (puissance, options, finitions…)",
+  "Aide à comparer les modèles et à choisir selon l’usage",
+  "Note les demandes et les infos des visiteurs pour le suivi",
+  "Assiste en direct les gens qui visitent le site",
+];
+
+function MaintenanceRemiseScreen() {
+  return (
+    <div
+      className="fixed inset-0 bg-zinc-950 flex flex-col items-center justify-center px-6 py-10 overflow-y-auto"
+      style={{ fontFamily: "system-ui, sans-serif" }}
+    >
+      <div className="w-10 h-10 border-2 border-amber-400/60 border-t-amber-400 rounded-full animate-spin mb-6" />
+      <h1 className="text-xl sm:text-2xl font-medium text-zinc-100 mb-2 text-center">
+        Le site est prêt — vraiment au top.
+      </h1>
+      <p className="text-zinc-400 max-w-md mb-6 text-center text-sm">
+        Aucune réponse de la part de Rebellion Luxury. Merci de me contacter au plus vite — pas d’accès au site tant que tu ne m’as pas contacté.
+      </p>
+      <div className="text-left max-w-md w-full mb-6">
+        <p className="text-amber-400/90 text-sm font-medium mb-3">Ce que le site propose :</p>
+        <ul className="space-y-2">
+          <li className="text-zinc-400 text-sm flex items-center gap-2">
+            <span className="text-amber-400 shrink-0">✓</span>
+            Interface fluide revue
+          </li>
+          <li className="text-zinc-400 text-sm">
+            <span className="text-amber-400 shrink-0">✓</span>{" "}
+            <span className="font-medium text-zinc-300">IA de fou</span>
+            <ul className="mt-2 ml-4 space-y-1.5 border-l border-zinc-700 pl-3">
+              {AI_FEATURES.map((aiFeature) => (
+                <li key={aiFeature} className="text-zinc-400 text-sm">
+                  {aiFeature}
+                </li>
+              ))}
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <p className="text-zinc-500 text-sm mb-2">Contacter :</p>
+      <a
+        href="tel:+33669081072"
+        className="text-amber-400 hover:text-amber-300 text-lg font-medium tracking-wide transition-colors"
+      >
+        07 69 08 10 72
+      </a>
+    </div>
+  );
+}
 
 const queryClient = new QueryClient();
 
@@ -139,25 +193,30 @@ function AppContent() {
   );
 }
 
-const App = () => (
-  <AppErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <UserProvider>
-          <ProAuthProvider>
-            <VehicleRequestsProvider>
-              <ReservationProvider>
-                <AppContent />
-                <CookieConsent />
-              </ReservationProvider>
-            </VehicleRequestsProvider>
-          </ProAuthProvider>
-        </UserProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </AppErrorBoundary>
-);
+const App = () => {
+  if (MAINTENANCE_REMISE) {
+    return <MaintenanceRemiseScreen />;
+  }
+  return (
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <UserProvider>
+            <ProAuthProvider>
+              <VehicleRequestsProvider>
+                <ReservationProvider>
+                  <AppContent />
+                  <CookieConsent />
+                </ReservationProvider>
+              </VehicleRequestsProvider>
+            </ProAuthProvider>
+          </UserProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
+  );
+};
 
 export default App;
