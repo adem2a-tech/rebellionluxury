@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ChatProvider, useChat } from "@/contexts/ChatContext";
 import { recordVisit } from "@/data/adminAnalytics";
+import { fetchAdminVehiclesFromServer } from "@/data/adminVehicles";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AIAssistant from "@/components/AIAssistant";
@@ -16,6 +17,11 @@ type SiteLayoutInnerProps = {
 function SiteLayoutInner({ justFinishedTransition }: SiteLayoutInnerProps) {
   const location = useLocation();
   const { isOpen, initialMessage, openChat, toggleChat } = useChat();
+
+  // Charger la flotte admin depuis l’API pour que l’IA et le catalogue affichent la même liste pour tous
+  useEffect(() => {
+    fetchAdminVehiclesFromServer().catch(() => {});
+  }, []);
 
   // FIX: Scroll to top on every route change (bug #4)
   useEffect(() => {

@@ -175,12 +175,12 @@ const Hero = ({ onOpenChat, onCheckAvailability }: HeroProps) => {
         </div>
       </div>
 
-      {/* Scroll indicator */}
-<motion.div
+      {/* Scroll indicator — centré sur tous les écrans */}
+      <motion.div
           initial={{ opacity: 0, y: 20, translateZ: -20 }}
           animate={{ opacity: 1, y: 0, translateZ: 0 }}
           transition={{ delay: 1.4, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          className="absolute bottom-8 left-0 right-0 flex justify-center"
           style={{ transformStyle: "preserve-3d" }}
           aria-hidden="true"
         >

@@ -182,7 +182,14 @@ const Header = ({ onOpenChat }: HeaderProps) => {
               transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="lg:hidden overflow-hidden border-t border-white/[0.06] bg-black"
             >
-              <nav className="flex flex-col gap-1 py-4 pb-5 px-3 antialiased" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+              <nav
+                className="flex flex-col gap-1 py-4 pb-5 px-3 antialiased overflow-y-auto overflow-x-hidden"
+                style={{
+                  fontFamily: "system-ui, -apple-system, sans-serif",
+                  maxHeight: "min(calc(100vh - 4rem), 85vh)",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
                 <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="min-h-[52px] pl-4 pr-4 flex items-center rounded-2xl text-[17px] font-semibold text-white bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.1] transition-all duration-300 ease-out border-l-2 border-white/40">
                   Accueil
                 </Link>

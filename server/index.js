@@ -19,6 +19,7 @@ const COOKIE_NAME = "rebellion_refresh";
 
 const DATA_DIR = path.join(__dirname, "data");
 const STORE_FILE = path.join(DATA_DIR, "refresh-tokens.json");
+const ADMIN_VEHICLES_FILE = path.join(DATA_DIR, "admin-vehicles.json");
 
 function loadRefreshStore() {
   const map = new Map();
@@ -177,6 +178,45 @@ app.post("/api/auth/logout-all", (req, res) => {
   }
   saveRefreshStore(refreshStore);
   clearRefreshCookie(res);
+  res.json({ ok: true });
+});
+
+// ——— Flotte admin (synchronisation IA / catalogue) ———
+function loadAdminVehiclesFile() {
+  try {
+    if (fs.existsSync(ADMIN_VEHICLES_FILE)) {
+      const raw = fs.readFileSync(ADMIN_VEHICLES_FILE, "utf8");
+      const data = JSON.parse(raw);
+      return Array.isArray(data) ? data : [];
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function saveAdminVehiclesFile(vehicles) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(ADMIN_VEHICLES_FILE, JSON.stringify(vehicles), "utf8");
+  } catch (err) {
+    console.error("Failed to save admin vehicles:", err);
+  }
+}
+
+// GET /api/admin-vehicles — liste publique pour l’IA et le catalogue (tous les visiteurs)
+app.get("/api/admin-vehicles", (req, res) => {
+  const vehicles = loadAdminVehiclesFile();
+  res.json(vehicles);
+});
+
+// POST /api/admin-vehicles — enregistrer la flotte admin (appelé depuis Espace pro après ajout/édition/suppression)
+app.post("/api/admin-vehicles", (req, res) => {
+  const vehicles = req.body?.vehicles;
+  if (!Array.isArray(vehicles)) {
+    return res.status(400).json({ error: "Body must contain { vehicles: [] }" });
+  }
+  saveAdminVehiclesFile(vehicles);
   res.json({ ok: true });
 });
 

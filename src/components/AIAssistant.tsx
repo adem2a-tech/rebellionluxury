@@ -7,7 +7,7 @@ import { useUser } from "@/contexts/UserContext";
 import { useChat } from "@/contexts/ChatContext";
 import { Button } from "./ui/button";
 import { CONTACT, CONDITIONS, BOBOLOC_VEHICLES_URL, SITE_INFO } from "@/data/chatKnowledge";
-import { getAllVehicles, getVehicleBySlug } from "@/data/vehicles";
+import { getAllVehicles, getVehicleBySlug, type VehicleData } from "@/data/vehicles";
 import { findVehicleByQuery } from "@/utils/priceCalculation";
 
 const RESERVATION_DOCS = [
@@ -34,6 +34,50 @@ interface AIAssistantProps {
 const whatsappCta = () =>
   `\n\n📱 **Pour louer :** contactez-nous sur **WhatsApp** au **${CONTACT.phone}** — nous répondons rapidement pour finaliser votre réservation !`;
 
+/** Dernier véhicule mentionné dans la conversation (pour les questions de suivi sans le redire). */
+function getLastMentionedVehicle(messages: { role: string; content: string }[]): { slug: string; name: string } | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const match = findVehicleByQuery(messages[i].content);
+    if (match) return match;
+  }
+  return null;
+}
+
+/** Message court / suivi (prix, durée, réservation) sans nom de véhicule → on garde le contexte. */
+function looksLikeFollowUp(text: string, hasPriceOrRentIntent: boolean): boolean {
+  const t = text.toLowerCase().trim();
+  if (t.length > 55) return false;
+  if (hasPriceOrRentIntent) return true;
+  const followUpStart = /^(et |pour |combien|le prix|son prix|ça fait|et pour|pour 2 jours|pour 3 jours|et pour 2|réserver|louer|tarif|estimation|dis[- ]?moi|c'est quoi le)\b/i;
+  const followUpWord = /\b(prix|tarif|combien|coût|cout|réserver|louer|2 jours|3 jours|week-?end|semaine|caution|dispo)\b/i;
+  return followUpStart.test(t) || followUpWord.test(t);
+}
+
+/** Formatte les infos complètes d’un véhicule (flotte base + Espace pro) pour l’IA. */
+function formatVehicleFullInfo(v: VehicleData): string {
+  const power = v.specs?.power ?? "—";
+  const transmission = v.specs?.transmission || v.transmission || v.boite || "—";
+  const year = v.specs?.year ?? v.year ?? "—";
+  const category = v.specs?.type || v.category || "—";
+  const caution = v.specs?.caution ?? "—";
+  const priceDay = v.pricePerDay ? `Dès **${v.pricePerDay} CHF**/jour` : "Sur demande";
+  const p24 = v.pricing?.[0];
+  const kmInclus = p24?.km ?? "200 km";
+  const extraKm = v.extraKmPriceChf ?? 5;
+  const desc = (v.description || "").slice(0, 140) + (v.description && v.description.length > 140 ? "…" : "");
+  const lines = [
+    desc ? `${desc}\n\n` : "",
+    `• **Puissance :** ${power}`,
+    `• **Boîte / transmission :** ${transmission}`,
+    `• **Année :** ${year}`,
+    `• **Type :** ${category}`,
+    `• **Prix :** ${priceDay} — forfaits 24h, week-end, semaine, mois sur la fiche`,
+    `• **Caution :** ${caution}`,
+    `• **Km inclus (24h) :** ${kmInclus} — au-delà : **${extraKm} CHF/km**`,
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
 // Réponses IA basées sur les données du site (chatKnowledge)
 // Point #3 : L'IA guide vers les pages du site au lieu d'inventer des infos
 const sendMessageToAI = async (
@@ -44,7 +88,13 @@ const sendMessageToAI = async (
   const lastMessage = messages[messages.length - 1].content.toLowerCase().trim();
   const lm = lastMessage;
   const fleet = getAllVehicles();
-  const vehicleMatch = findVehicleByQuery(messages[messages.length - 1].content);
+  let vehicleMatch = findVehicleByQuery(messages[messages.length - 1].content);
+  const hasPriceIntent = /combien|prix|tarif|coût|cout|estimation|cher/.test(lm);
+  const hasRentIntent = /louer|réserver|reserver|louez/.test(lm);
+  const contextVehicle = getLastMentionedVehicle(messages.slice(0, -1));
+  if (!vehicleMatch && contextVehicle && looksLikeFollowUp(messages[messages.length - 1].content, hasPriceIntent || hasRentIntent)) {
+    vehicleMatch = contextVehicle;
+  }
 
   // Salutations — répondre de manière naturelle
   if (/^(bonjour|salut|coucou|hello|hey|bonsoir|bonne soirée)[\s!.]*$/i.test(lm) || lm === "bjr" || lm === "yo") {
@@ -81,11 +131,22 @@ const sendMessageToAI = async (
     };
   }
 
-  // Prix pour un véhicule précis — utilise la flotte dynamique
-  const hasPriceIntent = /combien|prix|tarif|coût|cout|estimation|cher/.test(lm);
+  // Prix pour un véhicule précis — utilise la flotte dynamique (ou le véhicule en contexte)
   if (vehicleMatch && hasPriceIntent) {
+    const v = getVehicleBySlug(vehicleMatch.slug);
+    if (v) {
+      const priceDay = v.pricePerDay ? `**Dès ${v.pricePerDay} CHF/jour**` : "sur demande";
+      const caution = v.specs?.caution ?? "—";
+      const p24 = v.pricing?.[0];
+      const km = p24?.km ?? "200 km";
+      const extraKm = v.extraKmPriceChf ?? 5;
+      const summary = `Pour la **${v.name}** : ${priceDay} — caution ${caution} — ${km} inclus, au-delà ${extraKm} CHF/km.`;
+      return {
+        content: `💰 **Prix de la ${v.name}**\n\n${summary}\n\nTous les forfaits (24h, week-end, semaine, mois) sont sur la fiche :\n👉 **Menu "Véhicules" → ${v.name}**\n\nOu **Calculez le prix** pour une estimation selon la durée.` + whatsappCta(),
+      };
+    }
     return {
-      content: `💰 **Prix de la ${vehicleMatch.name}**\n\nJe ne peux pas vous donner un prix exact ici, mais vous trouverez tous les tarifs détaillés (forfaits, km inclus, caution) sur la fiche du véhicule :\n\n👉 **Menu "Véhicules" → ${vehicleMatch.name}**\n\nOu utilisez notre calculateur de prix interactif :\n👉 **Menu "Véhicules" → Calculer le prix**\n\nPour toute question, contactez-nous sur WhatsApp !` + whatsappCta(),
+      content: `💰 **Prix**\n\nConsultez la fiche du véhicule pour les tarifs détaillés :\n👉 **Menu "Véhicules" → ${vehicleMatch.name}**\n\nOu utilisez **Calculez le prix** pour une estimation.` + whatsappCta(),
     };
   }
 
@@ -161,13 +222,27 @@ const sendMessageToAI = async (
     return { content: `📸 **Nous suivre sur Instagram**\n\nRetrouvez nos supercars et l'actualité Rebellion Luxury : ${CONTACT.instagramUrl}\n\n📱 **Pour réserver :** WhatsApp au **${CONTACT.phone}** — le plus simple pour finaliser une location !` + whatsappCta() };
   }
 
-  // Info sur un véhicule — reconnu dynamiquement (flotte base + Espace pro)
+  // Questions ciblées sur un véhicule (chevaux, boîte, transmission) — flotte + Espace pro
+  const asksChevaux = /\b(chevaux|ch|puissance|puissant)\b/i.test(lm);
+  const asksBoite = /\b(boîte|boite|transmission|auto|manuel|automatique|manuelle)\b/i.test(lm);
+  if (vehicleMatch && (asksChevaux || asksBoite)) {
+    const v = getVehicleBySlug(vehicleMatch.slug);
+    if (v) {
+      const power = v.specs?.power ?? "—";
+      const trans = v.specs?.transmission || v.transmission || v.boite || "—";
+      if (asksChevaux) {
+        return { content: `🏎️ **${v.name}** — **Puissance : ${power}**\n\nPour tous les détails (tarifs, caution, km) : Menu "Véhicules" → ${v.name}.` + whatsappCta() };
+      }
+      return { content: `🏎️ **${v.name}** — **Boîte : ${trans}**\n\nPour tous les détails : Menu "Véhicules" → ${v.name}.` + whatsappCta() };
+    }
+  }
+
+  // Info sur un véhicule — reconnu dynamiquement (flotte base + véhicules Espace pro)
   if (vehicleMatch) {
     const v = getVehicleBySlug(vehicleMatch.slug);
     if (v) {
-      const desc = (v.description || "").slice(0, 120) + (v.description && v.description.length > 120 ? "…" : "");
-      const mclarenNote = v.name.toLowerCase().includes("mclaren") ? " • **Portes papillon**" : "";
-      return { content: `🏎️ **${v.name}** — ${desc}\n\n• **Puissance:** ${v.specs?.power ?? "—"}\n• **Transmission:** ${v.specs?.transmission ?? "—"}\n• **Année:** ${v.specs?.year ?? v.year ?? "—"}${mclarenNote}\n\n💰 **Tarifs et caution :** consultez la fiche complète ici :\n👉 **Menu "Véhicules" → ${v.name}**\n\nVous y trouverez tous les forfaits, km inclus et conditions.` + whatsappCta() };
+      const fullInfo = formatVehicleFullInfo(v);
+      return { content: `🏎️ **${v.name}**\n\n${fullInfo}\n\n👉 **Fiche complète et disponibilités :** Menu "Véhicules" → ${v.name}\n\nPour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
     }
   }
 
@@ -207,9 +282,14 @@ const sendMessageToAI = async (
   // Flotte / véhicules / supercars — liste à jour (base + véhicules Espace pro)
   if (lm.includes("véhicule") || lm.includes("vehicule") || lm.includes("flotte") || lm.includes("supercar") || lm.includes("voiture") || lm.includes("quels véhicules")) {
     const lines = fleet.length
-      ? fleet.map((v, i) => `${i + 1}️⃣ **${v.name}** — Dès ${v.pricePerDay || "?"} CHF/jour • ${(v.description || "").slice(0, 50)}…`).join("\n\n")
+      ? fleet.map((v, i) => {
+          const power = v.specs?.power ?? "—";
+          const trans = v.specs?.transmission || v.transmission || v.boite || "—";
+          const price = v.pricePerDay ? `Dès ${v.pricePerDay} CHF/jour` : "Sur demande";
+          return `${i + 1}️⃣ **${v.name}** — ${power} • Boîte ${trans} • ${price} • ${(v.description || "").slice(0, 45)}…`;
+        }).join("\n\n")
       : "Consultez le menu **Véhicules** pour le catalogue à jour.";
-    return { content: `🚗 **Notre flotte:**\n\n${lines}\n\nBasés en **${CONTACT.location}**.` + whatsappCta() };
+    return { content: `🚗 **Notre flotte:**\n\n${lines}\n\nBasés en **${CONTACT.location}**. Chaque véhicule a sa fiche détaillée (tarifs, caution, km inclus).` + whatsappCta() };
   }
 
   // Conditions

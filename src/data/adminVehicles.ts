@@ -7,6 +7,24 @@ import type { VehicleData, VehicleSpec, PricingTier } from "./vehicles";
 
 const STORAGE_KEY = "rebellion_admin_vehicles";
 
+/** Cache côté client : flotte admin reçue du serveur (même liste pour tous les visiteurs + IA) */
+let cachedServerAdminVehicles: VehicleData[] | null = null;
+
+export function setCachedServerAdminVehicles(vehicles: VehicleData[] | null): void {
+  cachedServerAdminVehicles = vehicles;
+}
+
+function loadFromStorage(): VehicleData[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export interface AdminVehicleInput {
   brand: string;
   model: string;
@@ -22,6 +40,8 @@ export interface AdminVehicleInput {
   pricing: PricingTier[];
   /** Lien Boboloc pour les disponibilités en temps réel */
   availabilityUrl?: string;
+  /** Prix par km supplémentaire (CHF), au-delà du forfait */
+  extraKmPriceChf?: number;
 }
 
 function slugify(name: string): string {
@@ -33,24 +53,44 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-function loadAdminVehicles(): VehicleData[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 function saveAdminVehicles(vehicles: VehicleData[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
 }
 
+/** Charge la flotte admin depuis le serveur (pour sync IA / catalogue). À appeler au démarrage de l’app. */
+export async function fetchAdminVehiclesFromServer(): Promise<VehicleData[]> {
+  try {
+    const res = await fetch("/api/admin-vehicles");
+    if (!res.ok) return loadFromStorage();
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      cachedServerAdminVehicles = data;
+      return data;
+    }
+  } catch {
+    // offline ou API indisponible
+  }
+  return loadFromStorage();
+}
+
+/** Envoie la flotte admin actuelle (localStorage) au serveur. À appeler après ajout/édition/suppression dans Espace pro. */
+export async function syncAdminVehiclesToServer(): Promise<void> {
+  const list = loadFromStorage();
+  try {
+    const res = await fetch("/api/admin-vehicles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vehicles: list }),
+    });
+    if (res.ok) cachedServerAdminVehicles = list;
+  } catch {
+    // ignore
+  }
+}
+
 /** Ajoute un véhicule (patron) */
 export function addAdminVehicle(input: AdminVehicleInput): VehicleData {
-  const list = loadAdminVehicles();
+  const list = loadFromStorage();
   const baseSlug = slugify(`${input.brand} ${input.model}`);
   let slug = baseSlug;
   let i = 0;
@@ -98,6 +138,7 @@ export function addAdminVehicle(input: AdminVehicleInput): VehicleData {
     boite: input.transmission,
     location: input.location || "Suisse romande",
     availabilityUrl: input.availabilityUrl?.trim() || undefined,
+    extraKmPriceChf: input.extraKmPriceChf ?? 5,
   };
 
   list.push(vehicle);
@@ -107,7 +148,7 @@ export function addAdminVehicle(input: AdminVehicleInput): VehicleData {
 
 /** Met à jour un véhicule admin existant */
 export function updateAdminVehicle(slug: string, input: AdminVehicleInput): VehicleData | null {
-  const list = loadAdminVehicles();
+  const list = loadFromStorage();
   const index = list.findIndex((v) => v.slug === slug);
   if (index < 0) return null;
 
@@ -150,6 +191,7 @@ export function updateAdminVehicle(slug: string, input: AdminVehicleInput): Vehi
     boite: input.transmission,
     location: input.location || "Suisse romande",
     availabilityUrl: input.availabilityUrl?.trim() || undefined,
+    extraKmPriceChf: input.extraKmPriceChf ?? 5,
   };
 
   list[index] = vehicle;
@@ -159,11 +201,11 @@ export function updateAdminVehicle(slug: string, input: AdminVehicleInput): Vehi
 
 /** Supprime un véhicule admin par slug */
 export function removeAdminVehicle(slug: string): void {
-  const list = loadAdminVehicles().filter((v) => v.slug !== slug);
+  const list = loadFromStorage().filter((v) => v.slug !== slug);
   saveAdminVehicles(list);
 }
 
-/** Liste des véhicules ajoutés par le patron */
+/** Liste des véhicules ajoutés par le patron (serveur si dispo, sinon localStorage) */
 export function getAdminVehicles(): VehicleData[] {
-  return loadAdminVehicles();
+  return cachedServerAdminVehicles ?? loadFromStorage();
 }

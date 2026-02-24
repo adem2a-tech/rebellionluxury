@@ -14,7 +14,7 @@ import { getAllVisitors } from "@/data/visitors";
 import { getAllRequests, getRequestsByStatus, updateRequestStatus, acceptRequestWithPricing, updateRequestSpecs, updateRequestPricing, deleteRequest } from "@/data/vehicleRequests";
 import type { VehicleRequest } from "@/data/vehicleRequests";
 import { getPendingLeads, getAllLeads, markLeadContacted } from "@/data/leads";
-import { addAdminVehicle, getAdminVehicles, removeAdminVehicle, updateAdminVehicle } from "@/data/adminVehicles";
+import { addAdminVehicle, getAdminVehicles, removeAdminVehicle, updateAdminVehicle, syncAdminVehiclesToServer } from "@/data/adminVehicles";
 import { getBaseFleet, updateBaseVehicle } from "@/data/baseFleet";
 import { getAllVehicles } from "@/data/vehicles";
 import { toast } from "sonner";
@@ -327,6 +327,7 @@ function MesVehiculesSection() {
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("Sport");
   const [availabilityUrl, setAvailabilityUrl] = useState("");
+  const [extraKmPriceChf, setExtraKmPriceChf] = useState("5");
   const [images, setImages] = useState<string[]>([]);
   const [pricing, setPricing] = useState<PricingTier[]>(() =>
     PRICING_TEMPLATES.map((t) => ({ ...t, price: "" }))
@@ -374,6 +375,8 @@ function MesVehiculesSection() {
     const submittedCategory = String(fd.get("category") ?? "").trim();
     const submittedYear = Number(fd.get("year")) || new Date().getFullYear();
     const submittedAvailabilityUrl = String(fd.get("availabilityUrl") ?? "").trim();
+    const rawExtraKm = String(fd.get("extraKmPriceChf") ?? "").trim().replace(",", ".");
+    const submittedExtraKm = rawExtraKm ? Math.max(0, parseFloat(rawExtraKm)) || 5 : 5;
     if (!submittedBrand || !submittedModel || !submittedPower || !submittedTransmission || !submittedDescription) return;
     if (images.length === 0) return;
     const tiers: PricingTier[] = pricing.map((p) => ({
@@ -394,6 +397,7 @@ function MesVehiculesSection() {
         images,
         pricing: tiers,
         availabilityUrl: submittedAvailabilityUrl || undefined,
+        extraKmPriceChf: submittedExtraKm,
       });
     } else {
       addAdminVehicle({
@@ -409,15 +413,18 @@ function MesVehiculesSection() {
         images,
         pricing: tiers,
         availabilityUrl: submittedAvailabilityUrl || undefined,
+        extraKmPriceChf: submittedExtraKm,
       });
     }
     resetForm();
     refreshVehicles();
+    syncAdminVehiclesToServer();
   };
 
   const handleRemove = (slug: string) => {
     removeAdminVehicle(slug);
     refreshVehicles();
+    syncAdminVehiclesToServer();
     if (editingSlug === slug) setEditingSlug(null);
   };
 
@@ -433,6 +440,7 @@ function MesVehiculesSection() {
     setLocation(v.location);
     setCategory(v.specs.type);
     setAvailabilityUrl(v.availabilityUrl ?? "");
+    setExtraKmPriceChf(v.extraKmPriceChf != null ? String(v.extraKmPriceChf) : "5");
     setImages(v.images.length > 0 ? v.images : []);
     setPricing(v.pricing.length > 0 ? v.pricing.map((p) => ({ ...p })) : PRICING_TEMPLATES.map((t) => ({ ...t, price: "" })));
   };
@@ -449,6 +457,7 @@ function MesVehiculesSection() {
     setLocation("");
     setCategory("Sport");
     setAvailabilityUrl("");
+    setExtraKmPriceChf("5");
     setImages([]);
     setPricing(PRICING_TEMPLATES.map((t) => ({ ...t, price: "" })));
   };
@@ -586,6 +595,24 @@ function MesVehiculesSection() {
                   />
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Prix au km supplémentaire */}
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-white/60">Prix au km supplémentaire (CHF)</label>
+            <p className="text-xs text-white/50">Tarif par kilomètre au-delà du forfait. Saisissez le montant que vous voulez (ex. 5, 6.5, 4.25).</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                name="extraKmPriceChf"
+                type="text"
+                inputMode="decimal"
+                value={extraKmPriceChf}
+                onChange={(e) => setExtraKmPriceChf(e.target.value.replace(/[^0-9.,]/g, ""))}
+                placeholder="Ex. 5 ou 6.5"
+                className="w-full max-w-[7rem] px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-colors"
+              />
+              <span className="text-sm text-white/60">CHF/km</span>
             </div>
           </div>
 
