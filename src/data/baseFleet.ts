@@ -39,13 +39,21 @@ function saveBaseFleet(vehicles: VehicleData[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
 }
 
-/** Retourne la flotte de base (localStorage ou défaut) */
+/** Retourne la flotte de base (localStorage ou défaut). Les nouveaux véhicules par défaut (ex. Porsche) sont fusionnés pour apparaître dans le catalogue. */
 export function getBaseFleet(): VehicleData[] {
   const stored = loadBaseFleet();
-  if (stored.length > 0) return stored;
-  // Premier chargement : initialiser avec les valeurs par défaut
-  saveBaseFleet(VEHICLES_DATA);
-  return VEHICLES_DATA;
+  if (stored.length === 0) {
+    saveBaseFleet(VEHICLES_DATA);
+    return VEHICLES_DATA;
+  }
+  const storedSlugs = new Set(stored.map((v) => v.slug));
+  const missing = VEHICLES_DATA.filter((v) => !storedSlugs.has(v.slug));
+  if (missing.length > 0) {
+    const merged = [...stored, ...missing];
+    saveBaseFleet(merged);
+    return merged;
+  }
+  return stored;
 }
 
 /** Met à jour un véhicule de la flotte de base */

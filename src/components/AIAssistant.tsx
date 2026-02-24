@@ -53,7 +53,19 @@ function looksLikeFollowUp(text: string, hasPriceOrRentIntent: boolean): boolean
   return followUpStart.test(t) || followUpWord.test(t);
 }
 
-/** Formatte les infos complètes d’un véhicule (flotte base + Espace pro) pour l’IA. */
+/** Formatte une ligne véhicule pour l’IA : prix en avant, puis nom, puissance, boîte. */
+function formatFleetLineWithPrice(v: VehicleData): string {
+  const power = v.specs?.power ?? "—";
+  const trans = v.specs?.transmission || v.transmission || v.boite || "—";
+  const price = v.pricePerDay ? `**Dès ${v.pricePerDay} CHF/jour**` : "Sur demande";
+  return `${price} — **${v.name}** — ${power} • Boîte ${trans}`;
+}
+
+/** Liste des véhicules avec prix (pour réponses courtes type "flotte : X, Y, Z"). */
+function fleetListWithPrices(fleet: VehicleData[]): string {
+  if (!fleet.length) return "Audi R8, McLaren 570S, Maserati…";
+  return fleet.map((v) => `${v.name} (dès ${v.pricePerDay ?? "?"} CHF/j)`).join(", ");
+}
 function formatVehicleFullInfo(v: VehicleData): string {
   const power = v.specs?.power ?? "—";
   const transmission = v.specs?.transmission || v.transmission || v.boite || "—";
@@ -118,16 +130,16 @@ const sendMessageToAI = async (
     return { content: `Très bien, merci ! 😊 Je suis là pour vous aider. Posez-moi vos questions sur nos véhicules, les tarifs ou les réservations !` };
   }
 
-  // Qui es-tu / que peux-tu faire / aide — flotte à jour (base + véhicules ajoutés via Espace pro)
+  // Qui es-tu / que peux-tu faire / aide — flotte à jour avec prix en avant
   if (
     lm.includes("qui es-tu") ||
     lm.includes("qui es tu") ||
     lm.includes("que peux-tu") ||
     /^(aide|help|\?|aider moi)[\s!.]*$/i.test(lm)
   ) {
-    const vehicleList = fleet.length ? fleet.map((v) => v.name).join(", ") : "Audi R8, McLaren 570S, Maserati…";
+    const list = fleet.length ? fleetListWithPrices(fleet) : "Audi R8, McLaren 570S, Maserati…";
     return {
-      content: `Je suis **Rebellion IA**, votre assistant. Je connais tout le site sur le bout des doigts ! Je peux vous renseigner sur : véhicules (${vehicleList}), tarifs, réservations, disponibilités, transport, conditions. Posez-moi vos questions !`,
+      content: `Je suis **Rebellion IA**, votre assistant. Je connais tout le site et **notre flotte est à jour** (véhicules Rebellion + catalogue particuliers).\n\n**Véhicules :** ${list}\n\nJe peux vous renseigner sur les tarifs, réservations, disponibilités, transport, conditions. Posez-moi vos questions !`,
     };
   }
 
@@ -206,9 +218,9 @@ const sendMessageToAI = async (
   }
 
   if (wantsToRent) {
-    const vehicleList = fleet.length ? fleet.map((v) => v.name).join(", ") : "Audi R8, McLaren 570S, Maserati…";
+    const list = fleet.length ? fleetListWithPrices(fleet) : "Audi R8, McLaren 570S, Maserati…";
     return {
-      content: `🏎️ **Louer une de nos supercars**\n\nNotre flotte : **${vehicleList}**.\n\n👉 **Menu « Véhicules »** — catalogue, fiches détaillées et tarifs\n👉 **Disponibilités :** [Voir les disponibilités](${BOBOLOC_VEHICLES_URL})\n\n📱 Pour réserver : **WhatsApp** au **${CONTACT.phone}** — nous finalisons avec vous !` + whatsappCta(),
+      content: `🏎️ **Louer une de nos supercars**\n\n**Notre flotte (prix dès 24h) :** ${list}\n\n👉 **Menu « Véhicules »** — catalogue, fiches détaillées et tarifs\n👉 **Disponibilités :** [Voir les disponibilités](${BOBOLOC_VEHICLES_URL})\n\n📱 Pour réserver : **WhatsApp** au **${CONTACT.phone}** — nous finalisons avec vous !` + whatsappCta(),
     };
   }
 
@@ -259,10 +271,10 @@ const sendMessageToAI = async (
     };
   }
 
-  // Tarifs — guide vers les pages véhicules + liste dynamique de la flotte
+  // Tarifs — liste flotte avec prix + où voir le détail
   if (lm.includes("prix") || lm.includes("tarif")) {
-    const vehicleNames = fleet.length ? fleet.map((v) => v.name).join(", ") : "Audi R8, McLaren 570S, Maserati…";
-    return { content: `💰 **Nos tarifs**\n\nJe n'ai pas les grilles ici. **Voici où les voir :**\n\n👉 **Menu "Véhicules"** — fiches (${vehicleNames}) et **Calculez le prix** pour une estimation\n\n📱 **WhatsApp** au **${CONTACT.phone}** pour une estimation sur mesure.` + whatsappCta() };
+    const list = fleet.length ? fleetListWithPrices(fleet) : "Audi R8, McLaren 570S, Maserati…";
+    return { content: `💰 **Nos tarifs**\n\n**Flotte à jour :** ${list}\n\n👉 **Menu « Véhicules »** — fiches détaillées et **Calculez le prix** pour une estimation\n\n📱 **WhatsApp** au **${CONTACT.phone}** pour une estimation sur mesure.` + whatsappCta() };
   }
 
   // Disponibilités — si un véhicule est mentionné → lien direct vers SES dispo (ou page générale)
@@ -290,17 +302,22 @@ const sendMessageToAI = async (
     };
   }
 
-  // Flotte / véhicules / supercars — liste à jour avec chevaux, boîte, prix (base + Espace pro)
-  if (lm.includes("véhicule") || lm.includes("vehicule") || lm.includes("flotte") || lm.includes("supercar") || lm.includes("voiture") || lm.includes("quels véhicules")) {
+  // Nouveaux véhicules / dernier ajout / flotte à jour — liste complète avec prix en avant
+  if (
+    lm.includes("nouveau véhicule") || lm.includes("nouveaux véhicules") || lm.includes("nouveaute") ||
+    lm.includes("dernier ajout") || lm.includes("derniers ajouts") || lm.includes("flotte à jour") ||
+    lm.includes("quels sont vos véhicules") || lm.includes("liste des véhicules")
+  ) {
+    const lines = fleet.length ? fleet.map((v) => formatFleetLineWithPrice(v)).join("\n\n") : "Consultez le menu **Véhicules**.";
+    return {
+      content: `🚗 **Notre flotte à jour**\n\n${lines}\n\nLes véhicules récemment ajoutés (dont par l’Espace pro) apparaissent ici avec leurs tarifs. Détails complets : **Menu Véhicules**.` + whatsappCta(),
+    };
+  }
+  if (lm.includes("véhicule") || lm.includes("vehicule") || lm.includes("flotte") || lm.includes("supercar") || lm.includes("voiture") || lm.includes("quels véhicules") || lm.includes("quelles voitures")) {
     const lines = fleet.length
-      ? fleet.map((v, i) => {
-          const power = v.specs?.power ?? "—";
-          const trans = v.specs?.transmission || v.transmission || v.boite || "—";
-          const price = v.pricePerDay ? `Dès ${v.pricePerDay} CHF/jour` : "Sur demande";
-          return `${i + 1}️⃣ **${v.name}** — ${power} • Boîte **${trans}** • ${price} • ${(v.description || "").slice(0, 45)}…`;
-        }).join("\n\n")
+      ? fleet.map((v) => formatFleetLineWithPrice(v)).join("\n\n")
       : "Consultez le menu **Véhicules** pour le catalogue à jour.";
-    return { content: `🚗 **Notre flotte:**\n\n${lines}\n\nBasés en **${CONTACT.location}**. Chaque véhicule a sa fiche (chevaux, boîte, tarifs, caution, km).` + whatsappCta() };
+    return { content: `🚗 **Notre flotte (à jour)**\n\n${lines}\n\nChaque véhicule a sa fiche (tarifs complets, caution, km). Basés en **${CONTACT.location}**.` + whatsappCta() };
   }
 
   // Questions générales : "vous avez des manuelles ?", "quelles voitures en auto ?", "liste des véhicules avec leur boîte"
@@ -345,10 +362,10 @@ const sendMessageToAI = async (
     return { content: `📍 **Localisation**\n\nNous sommes basés à **${SITE_INFO.location}** (Valais), au cœur de la Suisse romande.\n\n• **Récupération du véhicule :** Evionnaz\n• **Zone de livraison :** Suisse romande (transport au km)\n• **Carte :** [Voir sur Google Maps](${CONTACT.googleMapsUrl})\n\nPour louer ou réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
   }
 
-  // Âge minimum / permis — cautions depuis la flotte
-  if (lm.includes("âge") || lm.includes("age") || lm.includes("ans") && (lm.includes("minimum") || lm.includes("avoir")) || lm.includes("permis") && lm.includes("année")) {
+  // Âge minimum / permis — cautions pour toute la flotte
+  if (lm.includes("âge") || lm.includes("age") || (lm.includes("ans") && (lm.includes("minimum") || lm.includes("avoir"))) || (lm.includes("permis") && lm.includes("année"))) {
     const cautionLine = fleet.length
-      ? fleet.slice(0, 3).map((v) => `${v.name} : ${v.specs?.caution ?? "—"}`).join(", ")
+      ? fleet.map((v) => `${v.name} : ${v.specs?.caution ?? "—"}`).join(", ")
       : "Audi R8 : 3'000 CHF, McLaren 570S : 10'000 CHF";
     return { content: `📋 **Conditions d'âge & permis**\n\n• **Âge minimum :** ${SITE_INFO.minAge} ans\n• **Permis de conduire :** valide, détenu depuis au moins ${SITE_INFO.minPermitYears} ans\n• **Documents requis :** pièce d'identité, permis, justificatif de domicile\n• **Caution :** par carte bancaire (${cautionLine})\n\n📱 Pour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
   }
@@ -393,16 +410,26 @@ const sendMessageToAI = async (
     return { content: `🎵 **TikTok**\n\nRetrouvez-nous : ${CONTACT.tiktokUrl}\n\n📱 Pour réserver : **WhatsApp** au **${CONTACT.phone}** !` + whatsappCta() };
   }
 
-  // À propos / qui êtes-vous / rebellion luxury — flotte à jour
+  // À propos / qui êtes-vous / rebellion luxury — flotte à jour avec prix
   if (
     lm.includes("à propos") || lm.includes("a propos") || lm.includes("qui êtes-vous") || lm.includes("c est quoi") ||
     lm.includes("rebellion luxury") || lm.includes("rebellion luxe") || lm.includes("présentation")
   ) {
-    const flotteList = fleet.length ? fleet.map((v) => v.name).join(", ") + " (+ catalogue particuliers)" : "Audi R8, McLaren 570S (+ catalogue particuliers)";
-    return { content: `🏎️ **Rebellion Luxury**\n\nEntreprise de **location de véhicules haut de gamme** en Valais, spécialisée en supercars et sportives.\n\n• **Flotte :** ${flotteList}\n• **Zone :** Suisse romande — siège à Evionnaz\n• **Services :** location, transport sur plateau, conciergerie (Loue ton véhicule)\n• **Assurance & entretien** inclus, qualité premium\n\nPage complète : **À propos**` + whatsappCta() };
+    const list = fleet.length ? fleetListWithPrices(fleet) + " (+ catalogue particuliers)" : "Audi R8, McLaren 570S (+ catalogue particuliers)";
+    return { content: `🏎️ **Rebellion Luxury**\n\nEntreprise de **location de véhicules haut de gamme** en Valais, spécialisée en supercars et sportives.\n\n• **Flotte à jour :** ${list}\n• **Zone :** Suisse romande — siège à Evionnaz\n• **Services :** location, transport sur plateau, conciergerie (Loue ton véhicule)\n• **Assurance & entretien** inclus, qualité premium\n\nPage complète : **À propos**` + whatsappCta() };
   }
 
-  // Plan du site / pages / navigation
+  // Recommandation / conseil / quel véhicule choisir — flotte avec prix
+  if (
+    lm.includes("recommand") || lm.includes("conseill") || lm.includes("conseille") ||
+    (lm.includes("quel ") && (lm.includes("véhicule") || lm.includes("voiture") || lm.includes("choisir"))) ||
+    lm.includes("quelle voiture")
+  ) {
+    const lines = fleet.length ? fleet.map((v) => formatFleetLineWithPrice(v)).join("\n\n") : "Consultez le menu **Véhicules**.";
+    return {
+      content: `🏎️ **Notre flotte**\n\n${lines}\n\nChoisissez selon vos envies (sport, confort, budget). Détails et disponibilités sur **Menu Véhicules**. Pour réserver : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta(),
+    };
+  }
   if (lm.includes("plan du site") || lm.includes("pages") || lm.includes("navigation") || lm.includes("menu") && lm.includes("quoi")) {
     return { content: `🗺️ **Plan du site**\n\n• **Accueil** — Présentation\n• **Véhicules** — Catalogue complet\n• **Calculez le prix** — Estimation tarifs\n• **Loue ton véhicule** — Rentabiliser votre voiture\n• **Voir mes demandes** — Suivi des demandes\n• **À propos** — Notre histoire, conditions\n• **Transport** — Livraison à domicile\n• **Réseaux** — Instagram, Facebook, TikTok\n• **Espace pro** — Gestion véhicules\n• **Contact** — Email, téléphone, WhatsApp\n\nQue souhaitez-vous savoir ?` };
   }
@@ -418,10 +445,10 @@ const sendMessageToAI = async (
     return { content: `📋 **Documents pour réserver**\n\n${list}\n\nAcompte obligatoire. Caution par carte bancaire.\n\n📱 Envoyez vos documents sur **WhatsApp** au **${CONTACT.phone}** pour finaliser.` + whatsappCta() };
   }
 
-  // Paiement / acompte — cautions depuis la flotte
+  // Paiement / acompte — cautions pour toute la flotte
   if (lm.includes("paiement") || lm.includes("payer") || lm.includes("acompte") || lm.includes("carte bancaire")) {
     const cautionLine = fleet.length
-      ? fleet.slice(0, 3).map((v) => `${v.name} : ${v.specs?.caution ?? "—"}`).join(", ")
+      ? fleet.map((v) => `${v.name} : ${v.specs?.caution ?? "—"}`).join(", ")
       : "Audi : 3'000 CHF, McLaren : 10'000 CHF";
     return { content: `💳 **Paiement**\n\n• **Acompte obligatoire** pour réserver le véhicule\n• **Caution** par carte bancaire (${cautionLine})\n• Détails des modalités lors de la réservation\n\n📱 **WhatsApp** au **${CONTACT.phone}** pour convenir des détails.` + whatsappCta() };
   }
@@ -436,13 +463,13 @@ const sendMessageToAI = async (
     return { content: `🇨🇭 **Zone de circulation**\n\nLe véhicule doit **rester en Suisse** sauf accord préalable.\n\nNous sommes basés en **Suisse romande** (Evionnaz, Valais). Livraison possible partout en Suisse romande (transport au km).\n\n📱 Pour une exception (sortie Suisse) : contactez-nous au **${CONTACT.phone}**.` + whatsappCta() };
   }
 
-  // Comparaison entre deux véhicules — données depuis la flotte
+  // Comparaison entre deux véhicules — données depuis la flotte (tous les modèles)
   if ((lm.includes("audi") || lm.includes("r8")) && (lm.includes("mclaren") || lm.includes("570")) && !lm.includes("louer")) {
     const audi = fleet.find((v) => v.name.toLowerCase().includes("audi"));
     const mclaren = fleet.find((v) => v.name.toLowerCase().includes("mclaren"));
-    const aLine = audi ? `**${audi.name}** — Dès ${audi.pricePerDay || "?"} CHF/jour • ${audi.specs?.power ?? "—"} • Portes conventionnelles` : "**Audi R8 V8** — Dès 470 CHF/jour • 420 CH";
-    const mLine = mclaren ? `**${mclaren.name}** — Dès ${mclaren.pricePerDay || "?"} CHF/jour • ${mclaren.specs?.power ?? "—"} • Portes papillon` : "**McLaren 570S** — Dès 950 CHF/jour • 570 CH";
-    return { content: `⚖️ **Comparaison**\n\n${aLine}\n\n${mLine}\n\nDétails et tarifs complets sur **Véhicules**.\n\n📱 Pour choisir selon vos dates : **WhatsApp** au **${CONTACT.phone}**.` + whatsappCta() };
+    const aLine = audi ? `**${audi.name}** — Dès ${audi.pricePerDay ?? "?"} CHF/jour • ${audi.specs?.power ?? "—"} • Portes conventionnelles` : "**Audi R8 V8** — Dès 470 CHF/jour • 420 CH";
+    const mLine = mclaren ? `**${mclaren.name}** — Dès ${mclaren.pricePerDay ?? "?"} CHF/jour • ${mclaren.specs?.power ?? "—"} • Portes papillon` : "**McLaren 570S** — Dès 950 CHF/jour • 570 CH";
+    return { content: `⚖️ **Comparaison**\n\n${aLine}\n\n${mLine}\n\nDétails et tarifs complets sur **Véhicules**. Notre flotte inclut aussi la Maserati Quattroporte et la Porsche Macan Turbo — consultez le menu pour tous les modèles.` + whatsappCta() };
   }
 
   // Vérifier ma demande / statut
@@ -465,10 +492,10 @@ const sendMessageToAI = async (
     return { content: `📱 **Nos réseaux**\n\n• **Instagram :** ${CONTACT.instagramUrl}\n• **Facebook :** ${CONTACT.facebookUrl}\n• **TikTok :** ${CONTACT.tiktokUrl}\n\nPour **réserver** : **WhatsApp** au **${CONTACT.phone}** — le plus rapide !` + whatsappCta() };
   }
 
-  // Fallback — on n'a pas reconnu la question : guider clairement, jamais sans issue
-  const vehicleList = fleet.length ? fleet.map((v) => v.name).join(", ") : "Audi R8, McLaren 570S, Maserati…";
+  // Fallback — réponse utile avec flotte à jour, prix et pistes claires
+  const list = fleet.length ? fleetListWithPrices(fleet) : "Audi R8, McLaren 570S, Maserati…";
   return {
-    content: `Désolé, je n'ai pas plus d'info sur ça ici. **Voici où aller :**\n\n• **Véhicules / tarifs / dispo** → Menu **Véhicules** ou [Voir les disponibilités](${BOBOLOC_VEHICLES_URL})\n• **Louer une supercar** (${vehicleList}) → **WhatsApp** au **${CONTACT.phone}**\n• **Rentabiliser votre voiture** → Menu **Loue ton véhicule**\n\nPour une question précise, écrivez-moi (ex. « prix R8 », « dispo McLaren », « contact ») ou contactez-nous au **${CONTACT.phone}**.` + whatsappCta(),
+    content: `Je n’ai pas trouvé d’info précise sur ce sujet. **Voici ce que je peux faire :**\n\n• **Flotte & tarifs :** ${list}\n• **Véhicules / dispo :** [Menu Véhicules](${BOBOLOC_VEHICLES_URL}) ou **Calculez le prix**\n• **Réserver :** **WhatsApp** au **${CONTACT.phone}**\n• **Loue ton véhicule :** Menu Loue ton véhicule\n\nPosez-moi par ex. : « quels véhicules ? », « prix Macan », « dispo R8 », « contact ».` + whatsappCta(),
   };
 };
 

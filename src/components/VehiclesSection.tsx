@@ -232,7 +232,7 @@ const VehiclesSection = ({ onAskQuestion, onlyHorsRebellion = false }: VehiclesS
                               </p>
                               {v.pricePerDay != null && (
                                 <p className="text-sm text-muted-foreground font-medium">
-                                  À partir de <span className="text-foreground">{v.pricePerDay.toLocaleString("fr-CH")} CHF</span> <span className="text-muted-foreground/80">/ 2 jours</span>
+                                  À partir de <span className="text-foreground">{v.pricePerDay.toLocaleString("fr-CH")} CHF</span> <span className="text-muted-foreground/80">/ 24h</span>
                                 </p>
                               )}
                               <div className="pt-2">

@@ -25,7 +25,7 @@ export interface PriceBreakdown {
 
 export type DurationKey = "24h" | "we_court" | "we_long" | "semaine_courte" | "semaine_complete" | "mois";
 
-/** Préfixes des duration dans pricing (pour matcher le forfait) */
+/** Préfixes des duration dans pricing (pour matcher le forfait) — base + format Espace pro */
 const FORFAIT_PREFIX: Record<DurationKey, string> = {
   "24h": "24 heures",
   "we_court": "Week-end court",
@@ -33,6 +33,16 @@ const FORFAIT_PREFIX: Record<DurationKey, string> = {
   "semaine_courte": "Semaine courte",
   "semaine_complete": "Semaine complète",
   "mois": "Mois",
+};
+
+/** Variantes possibles (Espace pro utilise 24h, 48h, Vendredi au dimanche, 7 jours, Mois (30 jours), etc.) */
+const FORFAIT_ALIASES: Record<DurationKey, string[]> = {
+  "24h": ["24h", "24 heures", "journée", "journee", "1 jour"],
+  "we_court": ["week-end court", "vendredi au dimanche", "w-e (48h)", "48h"],
+  "we_long": ["week-end long", "vendredi au lundi", "w-e (72h)", "72h"],
+  "semaine_courte": ["semaine courte", "lun-ven", "lundi – vendredi", "5 jours"],
+  "semaine_complete": ["semaine complète", "semaine complete", "7 jours"],
+  "mois": ["mois (30", "30 jours", "mois"],
 };
 
 /** Durées disponibles (ordre pour le sélecteur) */
@@ -45,12 +55,19 @@ export const DURATION_OPTIONS: { value: DurationKey; label: string }[] = [
   { value: "mois", label: "Mois (30 jours)" },
 ];
 
-/** Retourne les forfaits disponibles pour un véhicule (ex. Maserati sans "Mois"). Jamais vide. */
+/** Retourne les forfaits disponibles pour un véhicule (ex. Maserati sans "Mois"). Compatible base + Espace pro. */
 export function getDurationOptionsForVehicle(vehicle: { pricing: PricingTier[] } | null) {
   if (!vehicle?.pricing?.length) return DURATION_OPTIONS;
-  const filtered = DURATION_OPTIONS.filter((opt) =>
-    vehicle.pricing.some((t) => t.duration.startsWith(FORFAIT_PREFIX[opt.value]))
-  );
+  const normalized = (s: string) => s.toLowerCase().trim().replace(/\s+/g, " ");
+  const filtered = DURATION_OPTIONS.filter((opt) => {
+    const prefix = FORFAIT_PREFIX[opt.value];
+    const aliases = FORFAIT_ALIASES[opt.value];
+    return vehicle.pricing.some((t) => {
+      const d = normalized(t.duration);
+      if (t.duration.startsWith(prefix)) return true;
+      return aliases.some((a) => d.startsWith(normalized(a)) || d.includes(normalized(a)));
+    });
+  });
   return filtered.length > 0 ? filtered : DURATION_OPTIONS;
 }
 
@@ -74,7 +91,7 @@ function getExtraKmPrice(vehicle: VehicleData): number {
   return vehicle.extraKmPriceChf ?? DEFAULT_EXTRA_KM_PRICE;
 }
 
-/** Trouve le forfait correspondant au forfait sélectionné (24h, week-end, semaine, mois) */
+/** Trouve le forfait correspondant au forfait sélectionné (24h, week-end, semaine, mois). Compatible base + Espace pro. */
 function findMatchingTier(
   vehicle: VehicleData,
   durationKey: DurationKey
@@ -82,8 +99,16 @@ function findMatchingTier(
   const pricing = vehicle.pricing;
   if (!pricing?.length) return null;
   const prefix = FORFAIT_PREFIX[durationKey];
-  const tier = pricing.find((p) => p.duration.startsWith(prefix));
-  return tier ? { tier, label: tier.duration } : null;
+  let tier = pricing.find((p) => p.duration.startsWith(prefix));
+  if (tier) return { tier, label: tier.duration };
+  const normalized = (s: string) => s.toLowerCase().trim().replace(/\s+/g, " ");
+  const aliases = FORFAIT_ALIASES[durationKey];
+  for (const alias of aliases) {
+    const a = normalized(alias);
+    tier = pricing.find((p) => normalized(p.duration).startsWith(a) || normalized(p.duration).includes(a));
+    if (tier) return { tier, label: tier.duration };
+  }
+  return null;
 }
 
 const FORFAIT_DAYS: Record<DurationKey, number> = {
@@ -95,9 +120,22 @@ const FORFAIT_DAYS: Record<DurationKey, number> = {
   "mois": 30,
 };
 
-/** Détecte si la grille est au format forfaits (24h, week-end, etc.) */
+/** Détecte si la grille est au format forfaits (24h/24 heures, week-end, 7 jours, etc.) — base ou Espace pro */
 function hasNewFormatPricing(pricing: PricingTier[] | undefined): boolean {
-  return !!pricing?.some((t) => t.duration.startsWith("24 heures"));
+  if (!pricing?.length) return false;
+  const normalized = (s: string) => s.toLowerCase().trim();
+  return pricing.some((t) => {
+    const d = normalized(t.duration);
+    return (
+      t.duration.startsWith("24 heures") ||
+      d === "24h" ||
+      d.startsWith("vendredi au") ||
+      d.includes("7 jours") ||
+      d.startsWith("mois (30") ||
+      d.startsWith("48h") ||
+      d.startsWith("72h")
+    );
+  });
 }
 
 /** Calcule le prix en utilisant la grille officielle (forfaits) */
@@ -272,5 +310,6 @@ export function parsePriceQuery(message: string): ParsedPriceQuery {
   if (m.includes("audi") || m.includes("r8")) result.vehicleQuery = "audi r8";
   if (m.includes("mclaren") || m.includes("570")) result.vehicleQuery = "mclaren 570";
   if (m.includes("maserati") || m.includes("quattroporte")) result.vehicleQuery = "maserati";
+  if (m.includes("porsche") || m.includes("macan")) result.vehicleQuery = "porsche macan";
   return result;
 }
