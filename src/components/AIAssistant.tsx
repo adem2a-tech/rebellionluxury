@@ -101,7 +101,8 @@ const sendMessageToAI = async (
   const lm = lastMessage;
   const fleet = getAllVehicles();
   let vehicleMatch = findVehicleByQuery(messages[messages.length - 1].content);
-  const hasPriceIntent = /combien|prix|tarif|coût|cout|estimation|cher/.test(lm);
+  const hasPriceIntent = /prix|tarif|coût|cout|estimation|cher/.test(lm) ||
+    (/combien/.test(lm) && !/\b(chevaux|ch\b|cv\b|puissance|portes|places|vitesses)\b/i.test(lm));
   const hasRentIntent = /louer|réserver|reserver|louez/.test(lm);
   const contextVehicle = getLastMentionedVehicle(messages.slice(0, -1));
   if (!vehicleMatch && contextVehicle && looksLikeFollowUp(messages[messages.length - 1].content, hasPriceIntent || hasRentIntent)) {
@@ -141,6 +142,37 @@ const sendMessageToAI = async (
     return {
       content: `Je suis **Rebellion IA**, votre assistant. Je connais tout le site et **notre flotte est à jour** (véhicules Rebellion + catalogue particuliers).\n\n**Véhicules :** ${list}\n\nJe peux vous renseigner sur les tarifs, réservations, disponibilités, transport, conditions. Posez-moi vos questions !`,
     };
+  }
+
+  // Questions ciblées sur un véhicule (chevaux, boîte, caractéristiques) — AVANT le bloc prix pour priorité
+  const asksSpecs =
+    /\b(chevaux|ch\b|cv\b|puissance|puissant)\b/i.test(lm) ||
+    /\b(boîte|boite|transmission|auto|manuel|automatique|manuelle|séquentielle|vitesses)\b/i.test(lm) ||
+    /\b(caractéristiques|caracteristiques|fiche|specs|spec\b|année|annee|type)\b/i.test(lm) ||
+    /\b(combien de ch|elle a quoi|il a quoi|c'est quoi la boîte)\b/i.test(lm);
+  if (vehicleMatch && asksSpecs) {
+    const v = getVehicleBySlug(vehicleMatch.slug);
+    if (v) {
+      const power = v.specs?.power ?? "—";
+      const transmission = v.specs?.transmission || v.transmission || v.boite || "—";
+      const year = v.specs?.year ?? v.year ?? "—";
+      const category = v.specs?.type || v.category || "—";
+      const caution = v.specs?.caution ?? "—";
+      const priceDay = v.pricePerDay ? `dès ${v.pricePerDay} CHF/jour` : "sur demande";
+      const p24 = v.pricing?.[0];
+      const kmInclus = p24?.km ?? "200 km";
+      const extraKm = v.extraKmPriceChf ?? 5;
+      const fullInfo = formatVehicleFullInfo(v);
+      const directAnswer =
+        /\b(chevaux|ch\b|cv\b|puissance)\b/i.test(lm)
+          ? `La **${v.name}** a **${power}**. `
+          : /\b(boîte|boite|transmission|auto|manuel)\b/i.test(lm)
+            ? `La **${v.name}** a une boîte **${transmission}**. `
+            : "";
+      return {
+        content: `🏎️ **${v.name}**\n\n${directAnswer}${fullInfo}\n\n👉 Fiche complète et dispo : Menu "Véhicules" → ${v.name}.` + whatsappCta(),
+      };
+    }
   }
 
   // Prix pour un véhicule précis — utilise la flotte dynamique (ou le véhicule en contexte)
@@ -234,21 +266,7 @@ const sendMessageToAI = async (
     return { content: `📸 **Nous suivre sur Instagram**\n\nRetrouvez nos supercars et l'actualité Rebellion Luxury : ${CONTACT.instagramUrl}\n\n📱 **Pour réserver :** WhatsApp au **${CONTACT.phone}** — le plus simple pour finaliser une location !` + whatsappCta() };
   }
 
-  // Questions ciblées sur un véhicule (chevaux, boîte, transmission, caractéristiques) — flotte + Espace pro → TOUT donner
-  const asksSpecs =
-    /\b(chevaux|ch\b|cv\b|puissance|puissant)\b/i.test(lm) ||
-    /\b(boîte|boite|transmission|auto|manuel|automatique|manuelle|séquentielle|vitesses)\b/i.test(lm) ||
-    /\b(caractéristiques|caracteristiques|fiche|specs|spec\b|année|annee|type)\b/i.test(lm) ||
-    /\b(combien de ch|elle a quoi|il a quoi|c'est quoi la boîte)\b/i.test(lm);
-  if (vehicleMatch && asksSpecs) {
-    const v = getVehicleBySlug(vehicleMatch.slug);
-    if (v) {
-      const fullInfo = formatVehicleFullInfo(v);
-      return { content: `🏎️ **${v.name}** — tout ce que j'ai :\n\n${fullInfo}\n\n👉 Fiche complète et dispo : Menu "Véhicules" → ${v.name}.` + whatsappCta() };
-    }
-  }
-
-  // Info sur un véhicule — reconnu dynamiquement (flotte base + véhicules Espace pro) → fiche complète avec chevaux, boîte, prix, tout
+  // Info sur un véhicule (sans question de prix ni de specs déjà traitée) — fiche complète
   if (vehicleMatch) {
     const v = getVehicleBySlug(vehicleMatch.slug);
     if (v) {
