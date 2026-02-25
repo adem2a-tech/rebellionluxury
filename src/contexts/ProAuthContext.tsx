@@ -1,20 +1,41 @@
 import { createContext, useContext, useCallback, useState, useEffect, type ReactNode } from "react";
 
 const STORAGE_KEY = "rebellion_pro_logged_in";
+const COOKIE_NAME = "rebellion_pro_logged_in";
+const COOKIE_MAX_AGE = 730 * 24 * 60 * 60; // 2 ans — persistance tous navigateurs
 const PRO_CODE = "huracandidier";
 
-function getStorage(): Storage | null {
-  if (typeof window === "undefined") return null;
+function setProCookie(loggedIn: boolean) {
+  if (typeof document === "undefined") return;
   try {
-    void localStorage.length;
-    return localStorage;
+    const value = loggedIn ? "true" : "";
+    const maxAge = loggedIn ? COOKIE_MAX_AGE : 0;
+    document.cookie = `${COOKIE_NAME}=${value}; path=/; max-age=${maxAge}; SameSite=Lax${typeof window !== "undefined" && window.location?.protocol === "https:" ? "; Secure" : ""}`;
   } catch {
-    try {
-      void sessionStorage.length;
-      return sessionStorage;
-    } catch {
-      return null;
+    // ignore
+  }
+}
+
+function readProCookie(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    return document.cookie.includes(`${COOKIE_NAME}=true`);
+  } catch {
+    return false;
+  }
+}
+
+function readStoredLogin(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const fromStorage = localStorage.getItem(STORAGE_KEY) === "true";
+    const fromCookie = readProCookie();
+    if (fromCookie && !fromStorage) {
+      localStorage.setItem(STORAGE_KEY, "true");
     }
+    return fromStorage || fromCookie;
+  } catch {
+    return readProCookie();
   }
 }
 
@@ -27,27 +48,33 @@ type ProAuthContextValue = {
 const ProAuthContext = createContext<ProAuthContextValue | null>(null);
 
 export function ProAuthProvider({ children }: { children: ReactNode }) {
-  const [isProLoggedIn, setIsProLoggedIn] = useState(false);
+  const [isProLoggedIn, setIsProLoggedIn] = useState(() => readStoredLogin());
 
   useEffect(() => {
-    const storage = getStorage();
-    try {
-      const stored = storage?.getItem(STORAGE_KEY);
-      setIsProLoggedIn(stored === "true");
-    } catch {
-      setIsProLoggedIn(false);
-    }
+    const resync = () => {
+      if (readStoredLogin()) setIsProLoggedIn(true);
+    };
+    const t = setTimeout(resync, 150);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") resync();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const login = useCallback((code: string): boolean => {
     const trimmed = (code || "").trim().toLowerCase();
     if (trimmed === PRO_CODE) {
-      const storage = getStorage();
       try {
-        storage?.setItem(STORAGE_KEY, "true");
+        localStorage.setItem(STORAGE_KEY, "true");
+        setProCookie(true);
         setIsProLoggedIn(true);
         return true;
       } catch {
+        setProCookie(true);
         setIsProLoggedIn(true);
         return true;
       }
@@ -57,7 +84,8 @@ export function ProAuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     try {
-      getStorage()?.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY);
+      setProCookie(false);
     } catch { /* ignore */ }
     setIsProLoggedIn(false);
   }, []);

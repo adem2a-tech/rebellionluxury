@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import Hero from "@/components/Hero";
 import { CONTACT } from "@/data/chatKnowledge";
-import { Quote, Mail, Phone, MapPin, Instagram, ExternalLink } from "lucide-react";
+import { Quote, Mail, Phone, MapPin, Instagram, ExternalLink, ChevronRight } from "lucide-react";
 import { IoLogoWhatsapp } from "react-icons/io5";
 import { LocationMap } from "@/components/ui/expand-map";
 import { ReviewsCarousel } from "@/components/ReviewsCarousel";
@@ -10,8 +11,9 @@ const Index = () => {
   return (
     <>
       <Hero />
-      {/* Teaser véhicules : deux vidéos côte à côte + CTA vers /vehicules */}
-      <section className="py-10 sm:py-14 lg:py-20 relative overflow-hidden">
+
+      {/* Notre Flotte — McLaren 570S */}
+      <section className="pt-6 sm:pt-8 pb-10 sm:pb-14 lg:pb-20 relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -24,14 +26,21 @@ const Index = () => {
               Notre Flotte
             </span>
             <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4 tracking-tight">
-              McLaren 570S — <span className="text-gradient-orange">Best seller</span>
+              McLaren 570S
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto mb-6 sm:mb-8 leading-relaxed">
-              Notre best seller et notre sélection de supercars haut de gamme en Suisse romande.
+            <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto mb-4 leading-relaxed">
+              Notre sélection de supercars haut de gamme en Suisse romande.
             </p>
+            <Link
+              to="/vehicules/mclaren-570s"
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
+            >
+              Voir la fiche McLaren 570S
+              <ChevronRight className="w-4 h-4 shrink-0" />
+            </Link>
           </motion.div>
 
-          {/* Visuel showroom McLaren — Best seller + valeurs flottantes (prix, caractéristiques) */}
+          {/* Visuel showroom McLaren — caractéristiques mises en avant */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -46,63 +55,39 @@ const Index = () => {
                   alt="Rebellion Luxury — McLaren 570S en showroom"
                   className="w-full h-full max-h-[70vh] object-contain"
                 />
-                {/* Best seller — 3D flottant */}
-                <motion.span
-                  className="absolute top-6 left-1/2 -translate-x-1/2 z-10 px-4 py-2 rounded-full text-[10px] font-semibold uppercase tracking-[0.35em] text-white backdrop-blur-md bg-white/[0.08] border border-white/[0.12]"
-                  style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.1) inset" }}
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  Best seller
-                </motion.span>
-                {/* Prix — pastille 3D */}
-                <motion.span
-                  className="absolute top-6 left-6 z-10 px-4 py-2.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-white tabular-nums backdrop-blur-md bg-black/40 border border-white/[0.1]"
-                  style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.06) inset" }}
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-                >
-                  Dès 950 <span className="text-white/80 font-normal">CHF</span>
-                  <span className="text-white/50 text-xs font-normal ml-0.5">/ jour</span>
-                </motion.span>
-                {/* 570 CH — pastille 3D */}
-                <motion.span
-                  className="absolute top-6 right-6 z-10 px-4 py-2.5 rounded-xl font-sans text-sm font-semibold tracking-widest text-white backdrop-blur-md bg-black/40 border border-white/[0.1]"
-                  style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.06) inset" }}
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-                >
-                  570 CH
-                </motion.span>
-                {/* Portes papillon — pastille 3D */}
-                <motion.span
-                  className="absolute bottom-24 left-6 z-10 px-4 py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-[0.22em] text-white/95 backdrop-blur-md bg-black/40 border border-white/[0.1]"
-                  style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.06) inset" }}
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
-                >
-                  Portes papillon
-                </motion.span>
-                {/* V8 bi-turbo — pastille 3D */}
-                <motion.span
-                  className="absolute bottom-24 right-6 z-10 px-4 py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-[0.22em] text-white/95 backdrop-blur-md bg-black/40 border border-white/[0.1]"
-                  style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.06) inset" }}
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
-                >
-                  V8 bi-turbo
-                </motion.span>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 h-24 sm:h-28 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none rounded-b-xl sm:rounded-b-2xl" />
-              <div className="absolute bottom-4 sm:bottom-5 left-4 right-4 sm:left-6 sm:right-6 flex items-center justify-between z-10">
-                <span className="font-sans text-[11px] font-medium tracking-[0.28em] text-white/60 uppercase">
-                  Rebellion Luxury
-                </span>
+                {/* Caractéristiques — ligne épurée, en bas du bloc */}
+                <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center px-4 sm:px-6 py-4 sm:py-5 bg-black/60 backdrop-blur-sm rounded-b-xl sm:rounded-b-2xl">
+                  <span className="absolute left-4 sm:left-6 font-sans text-[10px] sm:text-[11px] font-medium tracking-[0.28em] text-white/50 uppercase">
+                    Rebellion Luxury
+                  </span>
+                  <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+                    <span className="font-sans text-sm sm:text-base font-medium tracking-wide text-white tabular-nums">
+                      Dès 950 <span className="text-white/80 font-normal">CHF</span><span className="text-white/50">/jour</span>
+                    </span>
+                    <span className="w-px h-4 bg-white/30 rounded-full shrink-0" aria-hidden />
+                    <span className="font-sans text-sm sm:text-base font-medium tracking-widest text-white">
+                      570 CH
+                    </span>
+                    <span className="w-px h-4 bg-white/30 rounded-full shrink-0" aria-hidden />
+                    <span className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.2em] text-white/90">
+                      Portes papillon
+                    </span>
+                    <span className="w-px h-4 bg-white/30 rounded-full shrink-0" aria-hidden />
+                    <span className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.2em] text-white/90">
+                      V8 bi-turbo
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
+        </div>
+      </section>
 
-          {/* Avis clients — juste en dessous de la vidéo */}
+      {/* Suite de la page : avis, carte, etc. */}
+      <section className="py-10 sm:py-14 lg:py-20 relative overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-6xl">
+          {/* Avis clients */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}

@@ -42,6 +42,10 @@ export interface AdminVehicleInput {
   availabilityUrl?: string;
   /** Prix par km supplémentaire (CHF), au-delà du forfait */
   extraKmPriceChf?: number;
+  /** 1 vidéo (legacy) */
+  video?: string;
+  /** Max 2 vidéos, affichées à la fin du catalogue */
+  videos?: string[];
 }
 
 function slugify(name: string): string {
@@ -124,8 +128,9 @@ export function addAdminVehicle(input: AdminVehicleInput): VehicleData {
     slug,
     name: `${input.brand} ${input.model}`.trim(),
     description: input.description,
-    video: "",
-    images: input.images.length > 0 ? input.images : ["/placeholder.svg"],
+    video: input.video ?? "",
+    videos: input.videos?.slice(0, 2),
+    images: input.images.length > 0 ? input.images.slice(0, 10) : ["/placeholder.svg"],
     specs,
     pricing,
     brand: input.brand,
@@ -178,7 +183,9 @@ export function updateAdminVehicle(slug: string, input: AdminVehicleInput): Vehi
     slug, // garde le slug pour ne pas casser les liens
     name: `${input.brand} ${input.model}`.trim(),
     description: input.description,
-    images: input.images.length > 0 ? input.images : list[index].images,
+    video: input.video ?? list[index].video ?? "",
+    videos: input.videos !== undefined ? input.videos.slice(0, 2) : list[index].videos,
+    images: input.images.length > 0 ? input.images.slice(0, 10) : list[index].images,
     specs,
     pricing,
     brand: input.brand,

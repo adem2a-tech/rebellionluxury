@@ -11,8 +11,8 @@ export const CONTACT = {
   tiktokUrl: "https://www.tiktok.com/@rebellion.luxury",
   email: "Rebellionluxury@outlook.com",
   location: "Suisse, Evionnaz",
-  googleMapsUrl: "https://www.google.com/maps/search/Evionnaz+Suisse",
-  googleReviewsUrl: "https://www.google.com/maps/search/Evionnaz+Suisse",
+  googleMapsUrl: "https://maps.app.goo.gl/j23uWBdA9DtT871EA?g_st=ic",
+  googleReviewsUrl: "https://maps.app.goo.gl/j23uWBdA9DtT871EA?g_st=ic",
 } as const;
 
 /** Créateur du site */

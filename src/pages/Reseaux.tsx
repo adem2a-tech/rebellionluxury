@@ -64,35 +64,8 @@ const Reseaux = () => {
             Mes <span className="text-gradient-orange">réseaux</span>
           </h1>
           <p className="text-muted-foreground text-lg mb-12">
-            Retrouvez Rebellion Luxury sur les réseaux sociaux : actualités, photos de nos véhicules et offres.
+            Retrouvez Rebellion Luxury sur les réseaux : actualités, photos de nos véhicules et offres.
           </p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
-            className="mb-8"
-          >
-            <video
-              src="/reseaux-video.mp4"
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full max-w-6xl mx-auto rounded-2xl shadow-xl object-cover mb-6 min-h-[400px] h-[70vh] max-h-[70vh]"
-              aria-label="Vidéo Rebellion Luxury"
-            />
-            <motion.a
-              href={CONTACT.tiktokUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="tiktok-link-led inline-flex items-center gap-3 font-display hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg px-5 py-3 text-xl"
-              aria-label="Voir le compte TikTok Rebellion Luxury"
-            >
-              <Music2 className="w-6 h-6 shrink-0" />
-              Check mon compte TikTok
-            </motion.a>
-          </motion.div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {socialLinks.map((social, i) => (

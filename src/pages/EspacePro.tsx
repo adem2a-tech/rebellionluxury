@@ -4,13 +4,14 @@
  * Mes véhicules: ajout avec caractéristiques + grille tarifaire complète.
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, LogOut, Lock, FileText, Users, Mail, Check, X, Car, ImagePlus, Trash2, Phone, MapPin, ExternalLink, Calendar, Pencil } from "lucide-react";
+import { ArrowLeft, LogOut, Lock, FileText, Users, Mail, Check, X, Car, ImagePlus, Trash2, Phone, MapPin, ExternalLink, Calendar, Pencil, ChevronUp, ChevronDown, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProAuth } from "@/contexts/ProAuthContext";
-import { getAllVisitors } from "@/data/visitors";
+import { getAllVisitors, clearVisitors } from "@/data/visitors";
+import type { VisitorEntry } from "@/data/visitors";
 import { getAllRequests, getRequestsByStatus, updateRequestStatus, acceptRequestWithPricing, updateRequestSpecs, updateRequestPricing, deleteRequest } from "@/data/vehicleRequests";
 import type { VehicleRequest } from "@/data/vehicleRequests";
 import { getPendingLeads, getAllLeads, markLeadContacted } from "@/data/leads";
@@ -39,7 +40,7 @@ const PRICING_TEMPLATES: { duration: string; km: string }[] = [
   { duration: "Mois (30 jours)", km: "2'000 km" },
 ];
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = 10;
 
 function EspaceProLogin() {
   const [code, setCode] = useState("");
@@ -102,12 +103,32 @@ function FlotteBaseSection() {
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("Sport");
   const [availabilityUrl, setAvailabilityUrl] = useState("");
-  const [video, setVideo] = useState("");
+  const [videos, setVideos] = useState<string[]>(["", ""]);
   const [images, setImages] = useState<string[]>([]);
   const [pricing, setPricing] = useState<PricingTier[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const video1FileRef = useRef<HTMLInputElement>(null);
+  const video2FileRef = useRef<HTMLInputElement>(null);
 
   const refreshFleet = () => setBaseFleet(getBaseFleet());
+
+  const MAX_VIDEO_MB = 20;
+  const handleVideoFile = (index: 0 | 1, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      toast.error(`Vidéo max ${MAX_VIDEO_MB} Mo`);
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      if (dataUrl) setVideos((p) => { const next = [...p]; next[index] = dataUrl; return next; });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -124,6 +145,16 @@ function FlotteBaseSection() {
       reader.readAsDataURL(file);
     });
     e.target.value = "";
+  };
+
+  const moveImage = (from: number, direction: -1 | 1) => {
+    const to = from + direction;
+    if (to < 0 || to >= images.length) return;
+    setImages((prev) => {
+      const next = [...prev];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
   };
 
   const addPricingRow = () => setPricing((p) => [...p, { duration: "", km: "", price: "" }]);
@@ -146,8 +177,9 @@ function FlotteBaseSection() {
       location: String(fd.get("location") ?? "").trim(),
       category: String(fd.get("category") ?? "").trim(),
       availabilityUrl: String(fd.get("availabilityUrl") ?? "").trim() || undefined,
-      video: video.trim() || undefined,
-      images: images.length > 0 ? images : [],
+      video: videos[0]?.trim() || undefined,
+      videos: videos.map((u) => u.trim()).filter(Boolean).slice(0, 2),
+      images: images.length > 0 ? images.slice(0, 10) : [],
       pricing: pricing.filter((t) => (t.duration?.trim() || t.km?.trim() || t.price?.trim())).map((t) => ({
         ...t,
         price: t.price || "Sur demande",
@@ -172,8 +204,8 @@ function FlotteBaseSection() {
     setLocation(v.location);
     setCategory(v.specs.type);
     setAvailabilityUrl(v.availabilityUrl ?? "");
-    setVideo(v.video ?? "");
-    setImages(v.images.length > 0 ? v.images : []);
+    setVideos(v.videos?.length ? [v.videos[0] ?? "", v.videos[1] ?? ""] : [v.video ?? "", ""]);
+    setImages(v.images.length > 0 ? v.images.slice(0, 10) : []);
     setPricing(v.pricing.length > 0 ? v.pricing.map((p) => ({ ...p })) : [{ duration: "24h", km: "200 km", price: "" }]);
   };
 
@@ -189,7 +221,7 @@ function FlotteBaseSection() {
     setLocation("");
     setCategory("Sport");
     setAvailabilityUrl("");
-    setVideo("");
+    setVideos(["", ""]);
     setImages([]);
     setPricing([]);
   };
@@ -261,8 +293,38 @@ function FlotteBaseSection() {
                 <input name="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ex. Suisse romande" className={inputClass} />
               </div>
               <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                <label className={labelClass}>Vidéo (URL ou chemin)</label>
-                <input name="video" value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Ex. /vehicle-maserati.mp4" className={inputClass} />
+                <label className={labelClass}>Vidéo 1 (affichée à la fin du catalogue)</label>
+                <div className="flex gap-2">
+                  {videos[0]?.startsWith("data:") ? (
+                    <div className="flex-1 flex items-center gap-2 rounded-lg bg-black/50 border border-white/20 px-3 py-2.5 text-sm text-white/90">
+                      <Video className="w-4 h-4 text-amber-400/80" /> Vidéo importée
+                      <Button type="button" variant="ghost" size="sm" className="ml-auto text-white/60 hover:text-white" onClick={() => setVideos((p) => ["", p[1]])}><X className="w-4 h-4" /></Button>
+                    </div>
+                  ) : (
+                    <input name="video1" value={videos[0]} onChange={(e) => setVideos((p) => [e.target.value, p[1]])} placeholder="URL ou choisir un fichier" className={inputClass + " flex-1"} />
+                  )}
+                  <Button type="button" variant="outline" size="sm" className="shrink-0 border-white/20 text-white/80 hover:bg-white/10" onClick={() => video1FileRef.current?.click()}>
+                    <Video className="w-4 h-4 mr-1.5" /> Fichier
+                  </Button>
+                </div>
+                <input ref={video1FileRef} type="file" accept="video/*" className="hidden" onChange={(e) => handleVideoFile(0, e)} />
+              </div>
+              <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                <label className={labelClass}>Vidéo 2 (optionnel, max 2 vidéos)</label>
+                <div className="flex gap-2">
+                  {videos[1]?.startsWith("data:") ? (
+                    <div className="flex-1 flex items-center gap-2 rounded-lg bg-black/50 border border-white/20 px-3 py-2.5 text-sm text-white/90">
+                      <Video className="w-4 h-4 text-amber-400/80" /> Vidéo importée
+                      <Button type="button" variant="ghost" size="sm" className="ml-auto text-white/60 hover:text-white" onClick={() => setVideos((p) => [p[0], ""])}><X className="w-4 h-4" /></Button>
+                    </div>
+                  ) : (
+                    <input name="video2" value={videos[1]} onChange={(e) => setVideos((p) => [p[0], e.target.value])} placeholder="URL ou choisir un fichier" className={inputClass + " flex-1"} />
+                  )}
+                  <Button type="button" variant="outline" size="sm" className="shrink-0 border-white/20 text-white/80 hover:bg-white/10" onClick={() => video2FileRef.current?.click()}>
+                    <Video className="w-4 h-4 mr-1.5" /> Fichier
+                  </Button>
+                </div>
+                <input ref={video2FileRef} type="file" accept="video/*" className="hidden" onChange={(e) => handleVideoFile(1, e)} />
               </div>
               <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
                 <label className={labelClass}>Lien Boboloc (disponibilités)</label>
@@ -270,11 +332,16 @@ function FlotteBaseSection() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className={labelClass}>Photos * (max {MAX_IMAGES})</label>
+              <label className={labelClass}>Photos * (max {MAX_IMAGES}) — l’ordre est conservé</label>
               <div className="flex flex-wrap gap-2">
                 {images.map((src, i) => (
                   <div key={i} className="relative">
                     <img src={src} alt="" className="w-20 h-20 object-cover rounded-lg" />
+                    <span className="absolute bottom-0.5 left-0.5 text-[10px] font-medium text-white bg-black/60 px-1 rounded">{i + 1}</span>
+                    <div className="absolute -top-1 right-6 flex flex-col gap-0.5">
+                      <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} className="w-5 h-5 rounded bg-red-600/90 text-white flex items-center justify-center hover:bg-red-500 disabled:opacity-30 disabled:pointer-events-none"><ChevronUp className="w-3 h-3" /></button>
+                      <button type="button" onClick={() => moveImage(i, 1)} disabled={i === images.length - 1} className="w-5 h-5 rounded bg-red-600/90 text-white flex items-center justify-center hover:bg-red-500 disabled:opacity-30 disabled:pointer-events-none"><ChevronDown className="w-3 h-3" /></button>
+                    </div>
                     <button type="button" onClick={() => setImages((p) => p.filter((_, j) => j !== i))} className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center hover:bg-red-500"><X className="w-3 h-3" /></button>
                   </div>
                 ))}
@@ -328,13 +395,34 @@ function MesVehiculesSection() {
   const [category, setCategory] = useState("Sport");
   const [availabilityUrl, setAvailabilityUrl] = useState("");
   const [extraKmPriceChf, setExtraKmPriceChf] = useState("5");
+  const [videos, setVideos] = useState<string[]>(["", ""]);
   const [images, setImages] = useState<string[]>([]);
   const [pricing, setPricing] = useState<PricingTier[]>(() =>
     PRICING_TEMPLATES.map((t) => ({ ...t, price: "" }))
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const video1FileRef = useRef<HTMLInputElement>(null);
+  const video2FileRef = useRef<HTMLInputElement>(null);
 
   const refreshVehicles = () => setAdminVehicles(getAdminVehicles());
+
+  const MAX_VIDEO_MB_ADMIN = 20;
+  const handleVideoFile = (index: 0 | 1, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_VIDEO_MB_ADMIN * 1024 * 1024) {
+      toast.error(`Vidéo max ${MAX_VIDEO_MB_ADMIN} Mo`);
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      if (dataUrl) setVideos((p) => { const next = [...p]; next[index] = dataUrl; return next; });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -351,6 +439,16 @@ function MesVehiculesSection() {
       reader.readAsDataURL(file);
     });
     e.target.value = "";
+  };
+
+  const moveImage = (from: number, direction: -1 | 1) => {
+    const to = from + direction;
+    if (to < 0 || to >= images.length) return;
+    setImages((prev) => {
+      const next = [...prev];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
   };
 
   const updatePricing = (index: number, price: string) => {
@@ -383,6 +481,8 @@ function MesVehiculesSection() {
       ...p,
       price: p.price || "Sur demande",
     }));
+    const videosList = videos.map((u) => u.trim()).filter(Boolean).slice(0, 2);
+    const imagesList = images.slice(0, 10);
     if (editingSlug) {
       updateAdminVehicle(editingSlug, {
         brand: submittedBrand,
@@ -394,7 +494,8 @@ function MesVehiculesSection() {
         caution: submittedCaution || "À définir",
         location: submittedLocation || "Suisse romande",
         category: submittedCategory || "Sport",
-        images,
+        images: imagesList,
+        videos: videosList.length > 0 ? videosList : undefined,
         pricing: tiers,
         availabilityUrl: submittedAvailabilityUrl || undefined,
         extraKmPriceChf: submittedExtraKm,
@@ -410,7 +511,8 @@ function MesVehiculesSection() {
         caution: submittedCaution || "À définir",
         location: submittedLocation || "Suisse romande",
         category: submittedCategory || "Sport",
-        images,
+        images: imagesList,
+        videos: videosList.length > 0 ? videosList : undefined,
         pricing: tiers,
         availabilityUrl: submittedAvailabilityUrl || undefined,
         extraKmPriceChf: submittedExtraKm,
@@ -441,7 +543,8 @@ function MesVehiculesSection() {
     setCategory(v.specs.type);
     setAvailabilityUrl(v.availabilityUrl ?? "");
     setExtraKmPriceChf(v.extraKmPriceChf != null ? String(v.extraKmPriceChf) : "5");
-    setImages(v.images.length > 0 ? v.images : []);
+    setVideos(v.videos?.length ? [v.videos[0] ?? "", v.videos[1] ?? ""] : ["", ""]);
+    setImages(v.images.length > 0 ? v.images.slice(0, 10) : []);
     setPricing(v.pricing.length > 0 ? v.pricing.map((p) => ({ ...p })) : PRICING_TEMPLATES.map((t) => ({ ...t, price: "" })));
   };
 
@@ -458,6 +561,7 @@ function MesVehiculesSection() {
     setCategory("Sport");
     setAvailabilityUrl("");
     setExtraKmPriceChf("5");
+    setVideos(["", ""]);
     setImages([]);
     setPricing(PRICING_TEMPLATES.map((t) => ({ ...t, price: "" })));
   };
@@ -541,6 +645,52 @@ function MesVehiculesSection() {
               />
             </div>
             <div className="space-y-2 md:col-span-2 lg:col-span-3">
+              <label className="text-xs uppercase tracking-wider text-white/60">Vidéo 1 (affichée à la fin du catalogue, max 2)</label>
+              <div className="flex gap-2">
+                {videos[0]?.startsWith("data:") ? (
+                  <div className="flex-1 flex items-center gap-2 rounded-lg bg-black/50 border border-white/20 px-3 py-2.5 text-sm text-white/90">
+                    <Video className="w-4 h-4 text-amber-400/80" /> Vidéo importée
+                    <Button type="button" variant="ghost" size="sm" className="ml-auto text-white/60 hover:text-white" onClick={() => setVideos((p) => ["", p[1]])}><X className="w-4 h-4" /></Button>
+                  </div>
+                ) : (
+                  <input
+                    name="video1"
+                    value={videos[0]}
+                    onChange={(e) => setVideos((p) => [e.target.value, p[1]])}
+                    placeholder="URL ou choisir un fichier (max 20 Mo)"
+                    className="flex-1 w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-colors"
+                  />
+                )}
+                <Button type="button" variant="outline" size="sm" className="shrink-0 border-white/20 text-white/80 hover:bg-white/10" onClick={() => video1FileRef.current?.click()}>
+                  <Video className="w-4 h-4 mr-1.5" /> Fichier
+                </Button>
+              </div>
+              <input ref={video1FileRef} type="file" accept="video/*" className="hidden" onChange={(e) => handleVideoFile(0, e)} />
+            </div>
+            <div className="space-y-2 md:col-span-2 lg:col-span-3">
+              <label className="text-xs uppercase tracking-wider text-white/60">Vidéo 2 (optionnel)</label>
+              <div className="flex gap-2">
+                {videos[1]?.startsWith("data:") ? (
+                  <div className="flex-1 flex items-center gap-2 rounded-lg bg-black/50 border border-white/20 px-3 py-2.5 text-sm text-white/90">
+                    <Video className="w-4 h-4 text-amber-400/80" /> Vidéo importée
+                    <Button type="button" variant="ghost" size="sm" className="ml-auto text-white/60 hover:text-white" onClick={() => setVideos((p) => [p[0], ""])}><X className="w-4 h-4" /></Button>
+                  </div>
+                ) : (
+                  <input
+                    name="video2"
+                    value={videos[1]}
+                    onChange={(e) => setVideos((p) => [p[0], e.target.value])}
+                    placeholder="URL ou choisir un fichier"
+                    className="flex-1 w-full px-3 py-2.5 rounded-lg bg-black/50 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-colors"
+                  />
+                )}
+                <Button type="button" variant="outline" size="sm" className="shrink-0 border-white/20 text-white/80 hover:bg-white/10" onClick={() => video2FileRef.current?.click()}>
+                  <Video className="w-4 h-4 mr-1.5" /> Fichier
+                </Button>
+              </div>
+              <input ref={video2FileRef} type="file" accept="video/*" className="hidden" onChange={(e) => handleVideoFile(1, e)} />
+            </div>
+            <div className="space-y-2 md:col-span-2 lg:col-span-3">
               <label className="text-xs uppercase tracking-wider text-white/60">Lien disponibilités (Boboloc)</label>
               <input
                 name="availabilityUrl"
@@ -556,11 +706,16 @@ function MesVehiculesSection() {
 
           {/* Photos */}
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider text-white/60">Photos * (max {MAX_IMAGES})</label>
+            <label className="text-xs uppercase tracking-wider text-white/60">Photos * (max {MAX_IMAGES}) — l’ordre est conservé</label>
             <div className="flex flex-wrap gap-2">
               {images.map((src, i) => (
                 <div key={i} className="relative">
                   <img src={src} alt="" className="w-20 h-20 object-cover rounded" />
+                  <span className="absolute bottom-0.5 left-0.5 text-[10px] font-medium text-white bg-black/60 px-1 rounded">{i + 1}</span>
+                  <div className="absolute -top-1 right-6 flex flex-col gap-0.5">
+                    <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} className="w-5 h-5 rounded bg-amber-500/90 text-black flex items-center justify-center hover:bg-amber-400 disabled:opacity-30 disabled:pointer-events-none"><ChevronUp className="w-3 h-3" /></button>
+                    <button type="button" onClick={() => moveImage(i, 1)} disabled={i === images.length - 1} className="w-5 h-5 rounded bg-amber-500/90 text-black flex items-center justify-center hover:bg-amber-400 disabled:opacity-30 disabled:pointer-events-none"><ChevronDown className="w-3 h-3" /></button>
+                  </div>
                   <button type="button" onClick={() => setImages((p) => p.filter((_, j) => j !== i))} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">
                     <X className="w-3 h-3" />
                   </button>
@@ -701,7 +856,16 @@ function EspaceProContent() {
     refreshLeads();
   };
 
+  const [visitorsKey, setVisitorsKey] = useState(0);
   const visitors = getAllVisitors();
+  useEffect(() => {
+    const HANDOVER_KEY = "rebellion_visitors_handover_v1";
+    if (!localStorage.getItem(HANDOVER_KEY)) {
+      clearVisitors();
+      localStorage.setItem(HANDOVER_KEY, "1");
+      setVisitorsKey((k) => k + 1);
+    }
+  }, []);
   const pendingRequests = requests.filter((r) => r.status === "pending");
   const acceptedRequests = getRequestsByStatus("accepted");
   const rejectedRequests = getRequestsByStatus("rejected");
@@ -922,7 +1086,7 @@ function EspaceProContent() {
 
       <div className="container mx-auto px-4 py-10 max-w-5xl relative z-10">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           <Card className="espace-pro-led-card border border-white/20 bg-black/60 overflow-hidden">
             <CardHeader className="py-4">
               <CardTitle className="text-xs uppercase tracking-wider text-white/60 flex items-center gap-2">
@@ -948,6 +1112,50 @@ function EspaceProContent() {
             <CardContent><p className="text-3xl font-bold text-amber-400 espace-pro-led-title">{leads.length}</p></CardContent>
           </Card>
         </div>
+
+        {/* Qui s'est connecté — visiteurs identifiés (prénom, nom, email, téléphone) */}
+        <Card className="espace-pro-led-card border border-white/20 bg-black/60 mb-8 overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-amber-400 espace-pro-led-title text-lg flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Qui s&apos;est connecté ({visitors.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 pt-0">
+            {visitors.length === 0 ? (
+              <p className="text-white/50 text-sm">Aucun visiteur identifié pour le moment.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/10 text-left text-white/60 uppercase tracking-wider text-[11px]">
+                      <th className="py-3 px-2 font-medium">Prénom</th>
+                      <th className="py-3 px-2 font-medium">Nom</th>
+                      <th className="py-3 px-2 font-medium">Email</th>
+                      <th className="py-3 px-2 font-medium">Téléphone</th>
+                      <th className="py-3 px-2 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...visitors]
+                      .sort((a: VisitorEntry, b: VisitorEntry) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((v) => (
+                        <tr key={v.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                          <td className="py-3 px-2 text-white/90">{v.firstName}</td>
+                          <td className="py-3 px-2 text-white/90">{v.lastName}</td>
+                          <td className="py-3 px-2 text-white/90">{v.email}</td>
+                          <td className="py-3 px-2 text-white/90">{v.phone || "—"}</td>
+                          <td className="py-3 px-2 text-white/50 text-xs">
+                            {new Date(v.createdAt).toLocaleDateString("fr-CH", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Demandes en attente */}
         <Card className="espace-pro-led-card border border-white/20 bg-black/60 mb-8 overflow-hidden">

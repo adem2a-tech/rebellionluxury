@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ImagePlus, X, Send } from "lucide-react";
+import { ImagePlus, X, Send, ChevronUp, ChevronDown } from "lucide-react";
 import { IoLogoWhatsapp } from "react-icons/io5";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ import { addRequest, canAddRequestToday, getRemainingRequestsToday } from "@/dat
 import { CONTACT } from "@/data/chatKnowledge";
 import { toast } from "sonner";
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 800 * 1024;
 
 const formSchema = z.object({
@@ -126,6 +126,16 @@ export function LoueTonVehiculeForm({ embedded = false }: LoueTonVehiculeFormPro
   };
 
   const removeImage = (index: number) => setImages((prev) => prev.filter((_, i) => i !== index));
+
+  const moveImage = (from: number, direction: -1 | 1) => {
+    const to = from + direction;
+    if (to < 0 || to >= images.length) return;
+    setImages((prev) => {
+      const next = [...prev];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
+  };
 
   const onSubmit = (values: LoueTonVehiculeFormValues) => {
     if (images.length === 0) {
@@ -320,14 +330,17 @@ export function LoueTonVehiculeForm({ embedded = false }: LoueTonVehiculeFormPro
         </div>
 
         <div className="space-y-4">
-          <h4 className="font-display text-sm font-semibold text-foreground">Photos (1 à 5)</h4>
+          <h4 className="font-display text-sm font-semibold text-foreground">Photos (1 à 10) — l’ordre que vous mettez est conservé</h4>
           <div className="flex flex-wrap gap-3">
             {images.map((src, i) => (
-              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border">
+              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
                 <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-black/80">
-                  <X className="w-3 h-3" />
-                </button>
+                <span className="absolute bottom-1 left-1 text-[10px] font-medium text-white/90 bg-black/60 px-1 rounded">{i + 1}</span>
+                <div className="absolute top-1 right-1 flex flex-col gap-0.5">
+                  <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} className="p-0.5 rounded bg-black/60 text-white hover:bg-black/80 disabled:opacity-30 disabled:pointer-events-none" title="Monter"><ChevronUp className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => moveImage(i, 1)} disabled={i === images.length - 1} className="p-0.5 rounded bg-black/60 text-white hover:bg-black/80 disabled:opacity-30 disabled:pointer-events-none" title="Descendre"><ChevronDown className="w-3 h-3" /></button>
+                </div>
+                <button type="button" onClick={() => removeImage(i)} className="absolute top-1 left-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black/80"><X className="w-3 h-3" /></button>
               </div>
             ))}
             {images.length < MAX_IMAGES && (

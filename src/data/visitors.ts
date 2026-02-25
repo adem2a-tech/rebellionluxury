@@ -10,6 +10,7 @@ export interface VisitorEntry {
   firstName: string;
   lastName: string;
   email: string;
+  phone?: string;
   createdAt: string; // ISO
 }
 
@@ -32,6 +33,7 @@ export function addVisitor(data: {
   firstName: string;
   lastName: string;
   email: string;
+  phone?: string;
 }): VisitorEntry {
   const list = loadVisitors();
   const entry: VisitorEntry = {
@@ -39,6 +41,7 @@ export function addVisitor(data: {
     firstName: data.firstName,
     lastName: data.lastName,
     email: data.email,
+    phone: data.phone?.trim() || undefined,
     createdAt: new Date().toISOString(),
   };
   list.push(entry);
@@ -48,4 +51,9 @@ export function addVisitor(data: {
 
 export function getAllVisitors(): VisitorEntry[] {
   return loadVisitors();
+}
+
+/** Réinitialise la liste des visiteurs (remet à 0). */
+export function clearVisitors(): void {
+  saveVisitors([]);
 }

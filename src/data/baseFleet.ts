@@ -22,6 +22,8 @@ export interface BaseFleetInput {
   pricing: PricingTier[];
   availabilityUrl?: string;
   video?: string;
+  /** Max 2 vidéos, affichées à la fin du catalogue */
+  videos?: string[];
 }
 
 function loadBaseFleet(): VehicleData[] {
@@ -91,7 +93,8 @@ export function updateBaseVehicle(slug: string, input: BaseFleetInput): VehicleD
     name: `${input.brand} ${input.model}`.trim(),
     description: input.description,
     video: input.video ?? existing.video ?? "",
-    images: input.images.length > 0 ? input.images : existing.images,
+    videos: (input.videos && input.videos.length > 0) ? input.videos.slice(0, 2) : existing.videos,
+    images: input.images.length > 0 ? input.images.slice(0, 10) : existing.images,
     specs,
     pricing,
     brand: input.brand,

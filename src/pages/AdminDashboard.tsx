@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
-import { getAllVisitors } from "@/data/visitors";
 import { getAllRequests, updateRequestStatus, acceptRequestWithPricing } from "@/data/vehicleRequests";
 import { getAllLeads } from "@/data/leads";
 import { getDailyVisits, getTopPages } from "@/data/adminAnalytics";
@@ -103,20 +102,16 @@ function SimpleBarChart({ data, max }: { data: { label: string; value: number }[
 }
 
 function DashboardTab() {
-  const visitors = getAllVisitors();
   const requests = getAllRequests();
   const leads = getAllLeads();
   const daily = getDailyVisits(7);
   const topPages = getTopPages(5);
-  const conversion = visitors.length > 0 ? ((requests.length + leads.length) / visitors.length * 100).toFixed(1) : "0";
+  const total = requests.length + leads.length;
+  const conversion = total > 0 ? ((leads.length / total) * 100).toFixed(1) : "0";
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-zinc-900 border-amber-500/20">
-          <CardHeader className="py-3"><CardTitle className="text-sm text-zinc-400">Visiteurs</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold text-amber-400">{visitors.length}</p></CardContent>
-        </Card>
         <Card className="bg-zinc-900 border-amber-500/20">
           <CardHeader className="py-3"><CardTitle className="text-sm text-zinc-400">Demandes location</CardTitle></CardHeader>
           <CardContent><p className="text-2xl font-bold text-amber-400">{requests.length}</p></CardContent>

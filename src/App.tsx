@@ -43,15 +43,44 @@ const AI_FEATURES = [
 function MaintenanceRemiseScreen() {
   return (
     <div
-      className="fixed inset-0 bg-zinc-950 flex flex-col items-center justify-center px-6 py-10 overflow-y-auto"
-      style={{ fontFamily: "system-ui, sans-serif" }}
+      className="fixed inset-0 bg-black flex flex-col items-center justify-center px-6 py-10 overflow-y-auto min-h-screen"
     >
-      <div className="w-10 h-10 border-2 border-amber-400/60 border-t-amber-400 rounded-full animate-spin mb-6" />
-      <h1 className="text-xl sm:text-2xl font-medium text-zinc-100 mb-2 text-center">
-        Le site est prêt — vraiment au top.
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.4), transparent), linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.02) 100%)`,
+        }}
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
+      <div
+        className="relative z-10 flex flex-col items-center animate-fade-in opacity-0"
+        style={{ animationDelay: "0.1s", animationFillMode: "forwards" }}
+      >
+        <div className="logo-round overflow-hidden h-20 w-20 sm:h-24 sm:w-24 shrink-0 flex items-center justify-center rounded-full border border-white/20 bg-white/5 animate-float shadow-[0_0_30px_rgba(255,255,255,0.08)] mb-6">
+          <img
+            src="/rebellion-luxury-logo.png"
+            alt="Rebellion Luxury"
+            className="w-full h-full object-contain animate-pulse-glow"
+          />
+        </div>
+        <span className="font-luxury text-xl sm:text-2xl font-semibold tracking-[0.28em] text-white uppercase mb-1">
+          Rebellion
+        </span>
+        <span className="font-luxury text-lg sm:text-xl font-medium tracking-[0.18em] text-white/90 uppercase mb-8">
+          Luxury
+        </span>
+      </div>
+      <h1
+        className="relative z-10 font-luxury text-2xl sm:text-3xl md:text-4xl font-semibold text-white text-center mb-3 tracking-[0.08em] animate-fade-in opacity-0 max-w-lg"
+        style={{ animationDelay: "0.3s", animationFillMode: "forwards" }}
+      >
+        Le site est prêt.
       </h1>
-      <p className="text-zinc-400 max-w-md mb-6 text-center text-sm">
-        Aucune réponse de la part de Rebellion Luxury. Merci de me contacter au plus vite — pas d’accès au site tant que tu ne m’as pas contacté.
+      <p
+        className="relative z-10 text-white/60 max-w-md text-center text-sm sm:text-base mb-8 animate-fade-in opacity-0"
+        style={{ animationDelay: "0.45s", animationFillMode: "forwards" }}
+      >
+        Nous finalisons la mise en ligne. Merci de nous contacter pour toute question — le site sera accessible très prochainement.
       </p>
       <div className="text-left max-w-md w-full mb-6">
         <p className="text-amber-400/90 text-sm font-medium mb-3">Ce que le site propose :</p>
@@ -165,7 +194,7 @@ function AppContent() {
           path="admin/*"
           element={
             <AdminAuthProvider>
-              <Suspense fallback={<div className="min-h-screen bg-zinc-950 flex items-center justify-center text-amber-400">Chargement...</div>}>
+              <Suspense fallback={null}>
                 <AdminDashboard />
               </Suspense>
             </AdminAuthProvider>

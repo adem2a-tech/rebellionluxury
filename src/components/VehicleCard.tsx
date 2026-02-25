@@ -48,6 +48,8 @@ interface VehicleCardProps {
   name: string;
   description?: string;
   video?: string;
+  /** Max 2 vidéos, affichées à la fin après les images */
+  videos?: string[];
   images: string[];
   specs: VehicleSpec;
   pricing: PricingTier[];
@@ -67,13 +69,14 @@ const VehicleCard = ({
   slug,
   name,
   video,
+  videos,
   images,
   specs,
   onOpenChatForVehicle,
 }: VehicleCardProps) => {
-  const slides: Slide[] = video
-    ? [{ type: "video", src: video }, ...images.map((src) => ({ type: "image" as const, src }))]
-    : images.map((src) => ({ type: "image" as const, src }));
+  const imageSlides = (images || []).slice(0, 10).map((src) => ({ type: "image" as const, src }));
+  const videoSrcs = (videos && videos.length > 0) ? videos.slice(0, 2) : (video ? [video] : []);
+  const slides: Slide[] = [...imageSlides, ...videoSrcs.map((src) => ({ type: "video" as const, src }))];
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -124,9 +127,9 @@ const VehicleCard = ({
 
       {/* Grille 2 colonnes : gauche = image + galerie, droite = 3 boutons + specs */}
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-0">
-        {/* Colonne gauche : image fond noir + logo overlay + bande miniatures avec flèches */}
+        {/* Colonne gauche : image centrée sans bordures + bande miniatures */}
         <div className="space-y-2 p-2 lg:p-3">
-          <div className="relative aspect-[4/3] overflow-hidden bg-black">
+          <div className="relative aspect-[4/3] overflow-hidden bg-black flex items-center justify-center">
             {slides[currentIndex].type === "video" ? (
               <video
                 key="video"
@@ -135,14 +138,14 @@ const VehicleCard = ({
                 muted
                 playsInline
                 src={slides[currentIndex].src}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain object-center"
                 aria-label={`Vidéo ${name}`}
               />
             ) : (
               <img
                 src={typeof slides[currentIndex].src === "string" ? slides[currentIndex].src : ""}
                 alt={`${name} - Vue ${currentIndex + 1}`}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain object-center"
               />
             )}
             <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-md bg-black/70 px-2 py-1.5 border border-amber-500/50">
@@ -171,8 +174,8 @@ const VehicleCard = ({
                   key={i}
                   type="button"
                   onClick={() => setCurrentIndex(i)}
-                  className={`shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-colors ${
-                    i === currentIndex ? "border-amber-500" : "border-border hover:border-amber-500/50"
+                  className={`shrink-0 w-16 h-12 rounded overflow-hidden transition-opacity ${
+                    i === currentIndex ? "ring-2 ring-amber-500 opacity-100" : "opacity-70 hover:opacity-100"
                   }`}
                 >
                   {slide.type === "video" ? (

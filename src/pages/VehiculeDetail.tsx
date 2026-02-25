@@ -53,9 +53,9 @@ const VehiculeDetail = () => {
 
   if (!vehicle) return <Navigate to="/vehicules" replace />;
 
-  const slides = vehicle.video
-    ? [...vehicle.images.map((src) => ({ type: "image" as const, src })), { type: "video" as const, src: vehicle.video }]
-    : vehicle.images.map((src) => ({ type: "image" as const, src }));
+  const imageSlides = (vehicle.images || []).slice(0, 10).map((src) => ({ type: "image" as const, src }));
+  const videoSrcs = (vehicle.videos && vehicle.videos.length > 0) ? vehicle.videos.slice(0, 2) : (vehicle.video ? [vehicle.video] : []);
+  const slides = [...imageSlides, ...videoSrcs.map((src) => ({ type: "video" as const, src }))];
 
   const openLouer = () => openChatForVehicle(vehicle.name, "Je souhaite louer ce véhicule");
   const openDispo = () => window.open(BOBOLOC_VEHICLES_URL, "_blank", "noopener,noreferrer");
@@ -119,7 +119,7 @@ const VehiculeDetail = () => {
             className="space-y-2"
           >
             <div
-              className="relative aspect-[4/3] min-h-[320px] overflow-hidden bg-black select-none cursor-grab active:cursor-grabbing vehicle-image-led"
+              className="relative aspect-[4/3] min-h-[320px] overflow-hidden bg-black select-none cursor-grab active:cursor-grabbing vehicle-image-led flex items-center justify-center"
               onTouchStart={(e) => { touchStartX.current = e.targetTouches[0]?.clientX ?? null; }}
               onTouchEnd={(e) => {
                 if (touchStartX.current == null || slides.length <= 1) { touchStartX.current = null; return; }
@@ -150,13 +150,13 @@ const VehiculeDetail = () => {
                   muted
                   playsInline
                   src={slides[mainIndex].src}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain object-center"
                 />
               ) : (
                 <img
                   src={slides[mainIndex].src}
                   alt={`${vehicle.name} - Vue ${mainIndex + 1}`}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain object-center"
                 />
               )}
               <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-md bg-black/80 px-3 py-2 border border-white/25">
@@ -186,10 +186,8 @@ const VehiculeDetail = () => {
                     key={i}
                     type="button"
                     onClick={() => setMainIndex(i)}
-                    className={`shrink-0 w-24 h-16 rounded overflow-hidden border-2 transition-colors ${
-                      i === mainIndex
-                        ? "border-white/50"
-                        : "border-white/20 hover:border-white/40"
+                    className={`shrink-0 w-24 h-16 rounded overflow-hidden transition-opacity ${
+                      i === mainIndex ? "ring-2 ring-white/50" : "opacity-80 hover:opacity-100"
                     }`}
                   >
                     {slide.type === "video" ? (

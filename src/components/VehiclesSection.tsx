@@ -15,12 +15,18 @@ interface VehiclesSectionProps {
   onlyHorsRebellion?: boolean;
 }
 
-/** Carrousel d’images par carte : boutons uniquement (flèches, points, bouton photo suivante) */
-function VehicleCardCarousel({ images, badgeLabel = "Rebellion" }: { images: string[]; badgeLabel?: string }) {
-  const [index, setIndex] = useState(0);
+function isVideoUrl(url: string): boolean {
+  if (url.startsWith("data:video/")) return true;
+  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
+}
 
-  const count = images.length;
-  const currentSrc = count > 0 ? images[index % count] : null;
+/** Carrousel images + vidéos (vidéos à la fin) : centré, sans bordures */
+function VehicleCardCarousel({ images, videos = [], badgeLabel = "Rebellion" }: { images: string[]; videos?: string[]; badgeLabel?: string }) {
+  const [index, setIndex] = useState(0);
+  const slides = [...images.slice(0, 10), ...videos.slice(0, 2)];
+  const count = slides.length;
+  const currentSrc = count > 0 ? slides[index % count] : null;
+  const isVideo = currentSrc ? isVideoUrl(currentSrc) : false;
 
   const goPrev = () => setIndex((i) => (i - 1 + count) % count);
   const goNext = () => setIndex((i) => (i + 1) % count);
@@ -28,33 +34,45 @@ function VehicleCardCarousel({ images, badgeLabel = "Rebellion" }: { images: str
   if (count === 0) {
     return (
       <div className="relative aspect-[3/2] bg-zinc-900 shrink-0 w-full flex items-center justify-center text-zinc-500 text-sm">
-        Aucune image
+        Aucun média
       </div>
     );
   }
 
   return (
     <div
-      className="relative aspect-[3/2] bg-zinc-900 overflow-hidden shrink-0 w-full select-none z-20 rounded-t-2xl border border-b-0 border-white/10"
+      className="relative aspect-[3/2] bg-zinc-900 overflow-hidden shrink-0 w-full select-none z-20 rounded-t-2xl"
       onClick={(e) => e.stopPropagation()}
       role="region"
-      aria-label="Carrousel photos"
+      aria-label="Carrousel photos et vidéos"
     >
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 flex items-center justify-center">
         <AnimatePresence mode="wait" initial={false}>
-          {currentSrc && (
+          {currentSrc && isVideo ? (
+            <motion.video
+              key={index}
+              src={currentSrc}
+              className="max-w-full max-h-full w-full h-full object-contain object-center pointer-events-none"
+              controls
+              playsInline
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+            />
+          ) : currentSrc ? (
             <motion.img
               key={index}
               src={currentSrc}
               alt=""
-              className="w-full h-full object-cover pointer-events-none absolute inset-0"
+              className="max-w-full max-h-full w-full h-full object-contain object-center pointer-events-none"
               draggable={false}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5, ease: "easeInOut" }}
             />
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
       {/* Légère ombre en bas pour transition vers le contenu */}
@@ -83,7 +101,7 @@ function VehicleCardCarousel({ images, badgeLabel = "Rebellion" }: { images: str
           </button>
           <div className="absolute bottom-3 left-0 right-0 flex flex-col items-center gap-2 z-30 pointer-events-auto">
             <div className="flex gap-1.5">
-              {images.map((_, i) => (
+              {slides.map((_, i) => (
                 <button
                   key={i}
                   type="button"
@@ -192,9 +210,12 @@ const VehiclesSection = ({ onAskQuestion, onlyHorsRebellion = false }: VehiclesS
                       specs?: { power?: string };
                     };
                     /* Liste d’images pour le carrousel (imports Vite = URLs string) */
-                    const mediaList: string[] = Array.isArray(v.images)
-                      ? v.images.map((x) => (typeof x === "string" ? x : String(x)))
+                    const imageList: string[] = Array.isArray(v.images)
+                      ? v.images.slice(0, 10).map((x) => (typeof x === "string" ? x : String(x)))
                       : [];
+                    const videoList: string[] = (v.videos && v.videos.length > 0)
+                      ? v.videos.slice(0, 2)
+                      : (v.video ? [v.video] : []);
                     const locationLabel = v.location ?? "";
                     const yearLabel = v.year != null ? v.year : "";
                     const categoryLabel = v.category ?? "";
@@ -209,8 +230,8 @@ const VehiclesSection = ({ onAskQuestion, onlyHorsRebellion = false }: VehiclesS
                         className="w-full relative"
                       >
                         <div className="relative h-full block group">
-                          <div className="relative rounded-2xl overflow-hidden h-full min-h-[360px] flex flex-col border border-white/15 bg-black/90 shadow-[0_4px_24px_rgba(0,0,0,0.4),0_0_1px_rgba(255,255,255,0.06)_inset] transition-all duration-300 hover:border-white/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_1px_rgba(255,255,255,0.1)_inset]">
-                            <VehicleCardCarousel images={mediaList} badgeLabel={onlyHorsRebellion ? "Particulier" : "Rebellion"} />
+                          <div className="relative rounded-2xl overflow-hidden h-full min-h-[360px] flex flex-col bg-black/90 shadow-[0_4px_24px_rgba(0,0,0,0.4)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
+                            <VehicleCardCarousel images={imageList} videos={videoList} badgeLabel={onlyHorsRebellion ? "Particulier" : "Rebellion"} />
                             {onlyHorsRebellion && (
                               <p className="px-4 py-2 text-xs text-zinc-500 bg-zinc-900/80 border-t border-white/5">
                                 Ce véhicule n&apos;appartient pas à Rebellion Luxury

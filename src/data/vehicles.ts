@@ -43,6 +43,8 @@ export interface VehicleData {
   name: string;
   description: string;
   video: string;
+  /** Jusqu'à 2 vidéos, affichées à la fin du catalogue (après les images) */
+  videos?: string[];
   images: string[];
   specs: VehicleSpec;
   pricing: PricingTier[];

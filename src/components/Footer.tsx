@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { CONTACT, CREATOR } from "@/data/chatKnowledge";
+import { getAllVehicles } from "@/data/vehicles";
 
 const Footer = () => {
   return (
@@ -138,16 +139,17 @@ const Footer = () => {
           >
             <h4 className="font-display font-semibold mb-4">Nos véhicules</h4>
             <ul className="space-y-3">
-              {["Audi R8 V8", "McLaren 570S"].map((name, i) => (
-                <li key={name}>
-                  <motion.a
-                    href="/vehicules"
-                    className="inline-block text-muted-foreground hover:text-primary transition-colors text-sm"
-                    whileHover={{ x: 6, color: "hsl(var(--primary))" }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {name}
-                  </motion.a>
+              {getAllVehicles().map((v) => (
+                <li key={v.slug}>
+                  <Link to={`/vehicules/${v.slug}`}>
+                    <motion.span
+                      className="inline-block text-muted-foreground hover:text-primary transition-colors text-sm cursor-pointer"
+                      whileHover={{ x: 6, color: "hsl(var(--primary))" }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {v.name}
+                    </motion.span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -214,6 +216,28 @@ const Footer = () => {
             </ul>
           </motion.div>
         </div>
+
+        {/* Localisation exacte — sous chaque fin de page */}
+        <motion.div
+          className="mt-10 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-left"
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4 }}
+        >
+          <span className="text-muted-foreground text-sm">
+            📍 Rebellion Luxury — Evionnaz (Valais), Suisse romande
+          </span>
+          <a
+            href={CONTACT.googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            <MapPin className="w-4 h-4 shrink-0" />
+            Voir sur Google Maps
+          </a>
+        </motion.div>
 
         {/* FAQ & Crédits */}
         <motion.div
